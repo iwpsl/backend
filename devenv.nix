@@ -11,4 +11,33 @@
       pnpm.enable = true;
     };
   };
+
+  packages = with pkgs; [
+    pgadmin4
+    nodePackages.prisma
+  ];
+
+  env = {
+    PGADMIN_SERVER_MODE = "OFF";
+
+    PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/schema-engine";
+    PRISMA_QUERY_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/query-engine";
+    PRISMA_QUERY_ENGINE_LIBRARY = "${pkgs.prisma-engines}/lib/libquery_engine.node";
+    PRISMA_FMT_BINARY = "${pkgs.prisma-engines}/bin/prisma-fmt";
+  };
+
+  services = {
+    postgres = {
+      enable = true;
+      listen_addresses = "127.0.0.1";
+      initialDatabases = [{
+        name = "database";
+        user = "database";
+        pass = "database";
+      }];
+      initialScript = ''
+        ALTER ROLE database WITH CREATEDB;
+      '';
+    };
+  };
 }
