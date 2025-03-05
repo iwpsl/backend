@@ -13,13 +13,10 @@
   };
 
   packages = with pkgs; [
-    pgadmin4
     nodePackages.prisma
   ];
 
   env = {
-    PGADMIN_SERVER_MODE = "OFF";
-
     PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/schema-engine";
     PRISMA_QUERY_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/query-engine";
     PRISMA_QUERY_ENGINE_LIBRARY = "${pkgs.prisma-engines}/lib/libquery_engine.node";
