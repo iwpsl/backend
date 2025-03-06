@@ -1,6 +1,6 @@
 import { User } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { Body, Controller, Post, Route } from 'tsoa'
+import { Body, Controller, Post, Route, Tags } from 'tsoa'
 import { AuthUser } from '../middleware/auth'
 import { bcryptHash, jwtSign, prisma } from '../utils'
 import { MaybeOkPromise, MaybePromise } from './common'
@@ -13,14 +13,15 @@ type LoginResponse = {
 }
 
 @Route('auth')
+@Tags('Auth')
 export class AuthController extends Controller {
   @Post('/signup')
   public async signup(@Body() body: SignupRequest): MaybeOkPromise {
-    const { email, password, name } = body
+    const { email, password, role } = body
     try {
       await prisma.user.create({
         data: {
-          email, name,
+          email, role,
           password: await bcryptHash(password)
         }
       })
@@ -49,7 +50,11 @@ export class AuthController extends Controller {
         return { error: 'Invalid credentials' }
       }
 
-      const token = jwtSign<AuthUser>({ userId: user.id, email: user.email })
+      const token = jwtSign<AuthUser>({
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      })
       return { token }
     } catch (e) {
       console.log(e)
