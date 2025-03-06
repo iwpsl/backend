@@ -13,5 +13,7 @@
 5. Install dependencies, `pnpm i`
 6. Generate routes, `pnpm genroutes`
 7. Start database service, `devenv up`
-8. In another terminal, run the server `pnpm dev`
-9. To inspect the database, run `prisma studio`
+8. Migrate database, `prisma migrate deploy`
+9. Seed database, `prisma db seed`
+10. In another terminal, run the server `pnpm dev`
+11. To inspect the database, run `prisma studio`
