@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { Response } from 'express'
 import jwt from 'jsonwebtoken'
 
 export const prisma = new PrismaClient()
@@ -17,10 +16,3 @@ export function bcryptHash(input: string) {
   return bcrypt.hash(input, process.env.BCRYPT_SALT as string)
 }
 
-export function error(res: Response, status: number, error: string) {
-  res.status(status).json({ error })
-}
-
-export function ok(res: Response, message: string, extra?: Record<string, any>) {
-  res.json({ message, ...extra })
-}
