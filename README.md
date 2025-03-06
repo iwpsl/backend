@@ -5,7 +5,7 @@
 - Docker Daemon (Docker Desktop on Windows)
 - VSCode
 
-### Setup
+## Setup
 1. Clone the repo (in WSL if on Windows)
 2. Open the repo in VSCode
 3. In VSCode, reopen in container
