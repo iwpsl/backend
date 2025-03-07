@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs'
 import { Body, Controller, Post, Route, Tags } from 'tsoa'
 import { AuthUser } from '../middleware/auth'
 import { bcryptHash, jwtSign, prisma } from '../utils'
-import { MaybeOkPromise, MaybePromise } from './common'
+import { OkResponse } from './common'
+import { ResponseError } from '../middleware/error'
 
 type SignupRequest = Omit<User, 'id'>
 
@@ -16,50 +17,34 @@ type LoginResponse = {
 @Tags('Auth')
 export class AuthController extends Controller {
   @Post('/signup')
-  public async signup(@Body() body: SignupRequest): MaybeOkPromise {
+  public async signup(@Body() body: SignupRequest): Promise<OkResponse> {
     const { email, password, role } = body
-    try {
-      await prisma.user.create({
-        data: {
-          email, role,
-          password: await bcryptHash(password)
-        }
-      })
 
-      return { message: 'User created' }
-    } catch (e) {
-      console.log(e)
-      this.setStatus(500)
-      return { error: 'Internal server error' }
-    }
+    await prisma.user.create({
+      data: {
+        email, role,
+        password: await bcryptHash(password)
+      }
+    })
+
+    return { message: 'User created' }
   }
 
   @Post('/login')
-  public async login(@Body() body: LoginRequest): MaybePromise<LoginResponse> {
+  public async login(@Body() body: LoginRequest): Promise<LoginResponse> {
     const { email, password } = body
-    try {
-      const user = await prisma.user.findUnique({ where: { email } })
-      if (!user) {
-        this.setStatus(401)
-        return { error: 'Invalid credentials' }
-      }
 
-      const validPassword = await bcrypt.compare(password, user.password)
-      if (!validPassword) {
-        this.setStatus(401)
-        return { error: 'Invalid credentials' }
-      }
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) throw new ResponseError(401, 'Invalid credentials')
 
-      const token = jwtSign<AuthUser>({
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      })
-      return { token }
-    } catch (e) {
-      console.log(e)
-      this.setStatus(500)
-      return { error: 'Internal server error' }
-    }
+    const validPassword = await bcrypt.compare(password, user.password)
+    if (!validPassword) throw new ResponseError(401, 'Invalid credentials')
+
+    const token = jwtSign<AuthUser>({
+      userId: user.id,
+      email: user.email,
+      role: user.role
+    })
+    return { token }
   }
 }

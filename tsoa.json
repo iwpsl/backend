@@ -4,9 +4,16 @@
   "controllerPathGlobs": ["src/controllers/*.ts"],
   "spec": {
     "outputDirectory": "build",
-    "specVersion": 3
+    "specVersion": 3,
+    "securityDefinitions": {
+      "auth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
   },
   "routes": {
+    "authenticationModule": "src/middleware/auth.ts",
     "routesDir": "build"
   }
 }

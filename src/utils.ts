@@ -15,4 +15,3 @@ export function jwtVerify<T extends Record<string, unknown>>(token: string) {
 export function bcryptHash(input: string) {
   return bcrypt.hash(input, process.env.BCRYPT_SALT as string)
 }
-
