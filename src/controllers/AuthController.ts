@@ -6,18 +6,21 @@ import { bcryptHash, jwtSign, prisma } from '../utils'
 import { OkResponse } from './common'
 import { ResponseError } from '../middleware/error'
 
-type SignupRequest = Omit<User, 'id'>
+type SignupBody = Omit<User, 'id'>
 
-type LoginRequest = Pick<User, 'email' | 'password'>
-type LoginResponse = {
+type LoginReqBody = Pick<User, 'email' | 'password'>
+type LoginResBody = {
   token: string
 }
 
+// TODO: Field verification
+//       Restrict creating admin user
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
+  /** Sign up. */
   @Post('/signup')
-  public async signup(@Body() body: SignupRequest): Promise<OkResponse> {
+  public async signup(@Body() body: SignupBody): Promise<OkResponse> {
     const { email, password, role } = body
 
     await prisma.user.create({
@@ -30,8 +33,9 @@ export class AuthController extends Controller {
     return { message: 'User created' }
   }
 
+  /** Login. */
   @Post('/login')
-  public async login(@Body() body: LoginRequest): Promise<LoginResponse> {
+  public async login(@Body() body: LoginReqBody): Promise<LoginResBody> {
     const { email, password } = body
 
     const user = await prisma.user.findUnique({ where: { email } })

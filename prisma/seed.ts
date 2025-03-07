@@ -17,11 +17,16 @@ async function createUser(user: Prisma.UserCreateInput, profile?: Omit<Prisma.Pr
 async function up() {
   await createUser(
     {
-      email: 'test@example.com',
+      email: 'alice@example.com',
       password: 'test'
     },
     {
-      name: 'Test Profile'
+      name: 'Alice Smith',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'O+',
+      gender: 'female',
+      heightCm: 165,
+      weightKg: 60,
     }
   )
 

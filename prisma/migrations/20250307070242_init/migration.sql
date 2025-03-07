@@ -15,7 +15,14 @@ CREATE TABLE "User" (
 CREATE TABLE "Profile" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "dateOfBirth" TIMESTAMP(3) NOT NULL,
+    "gender" TEXT NOT NULL,
+    "heightCm" INTEGER NOT NULL,
+    "weightKg" INTEGER NOT NULL,
+    "bloodType" TEXT NOT NULL,
     "userId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Profile_pkey" PRIMARY KEY ("id")
 );

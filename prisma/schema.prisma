@@ -13,18 +13,26 @@ enum Role {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
+  id       Int    @id @default(autoincrement())
+  email    String @unique
   password String
-  role     Role     @default(USER)
+  role     Role   @default(USER)
 
-  Profile  Profile?
+  Profile Profile?
 }
 
 model Profile {
-  id Int @id @default(autoincrement())
-  name String
+  id          Int      @id @default(autoincrement())
+  name        String
+  dateOfBirth DateTime
+  gender      String
+  heightCm    Int
+  weightKg    Int
+  bloodType   String
 
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

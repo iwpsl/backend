@@ -1,10 +1,10 @@
-import express from 'express'
-import dotenv from 'dotenv'
-import { RegisterRoutes } from '../build/routes'
-import swaggerUi from 'swagger-ui-express'
-import * as swaggerJson from '../build/swagger.json'
 import cors from 'cors'
+import dotenv from 'dotenv'
+import express from 'express'
+import swaggerUi from 'swagger-ui-express'
 import { errorMiddleware } from './middleware/error'
+import { RegisterRoutes } from './routes/routes'
+import * as swaggerJson from './routes/swagger.json'
 
 dotenv.config()
 

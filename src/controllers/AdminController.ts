@@ -12,6 +12,7 @@ type ProfileResponse = Array<User & {
 @Security('auth')
 @Middlewares(roleMiddleware('ADMIN'))
 export class AdminController extends Controller {
+  /** Get list of profiles. */
   @Get('/profiles')
   public async getProfiles(): Promise<ProfileResponse> {
     const r = await prisma.user.findMany({ include: { Profile: true } })
