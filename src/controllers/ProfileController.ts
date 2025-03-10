@@ -1,10 +1,10 @@
 import { Profile } from '@prisma/client'
-import { Route, Controller, Tags, Security, Post, Body, Get, Middlewares, Request, Patch } from 'tsoa'
-import { OkResponse } from './common'
-import { roleMiddleware } from '../middleware/role'
-import { prisma } from '../utils'
+import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
 import { AuthRequest } from '../middleware/auth'
 import { ResponseError } from '../middleware/error'
+import { roleMiddleware } from '../middleware/role'
+import { prisma } from '../utils'
+import { OkResponse } from './common'
 
 type ProfileBody = Omit<Profile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 
