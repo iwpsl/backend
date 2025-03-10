@@ -11,9 +11,10 @@
 3. In VSCode, reopen in container
 4. Wait for it to build the image
 5. Install dependencies, `pnpm i`
-6. Generate routes, `pnpm genroutes`
-7. Start database service, `devenv up`
-8. Migrate database, `prisma migrate deploy`
-9. Seed database, `prisma db seed`
-10. In another terminal, run the server `pnpm dev`
-11. To inspect the database, run `prisma studio`
+6. Generate prisma client `prisma generate`
+7. Generate routes, `pnpm genroutes`
+8. Start database service, `devenv up`
+9. Migrate database, `prisma migrate deploy`
+10. Seed database, `prisma db seed`
+11. In another terminal, run the server `pnpm dev`
+12. To inspect the database, run `prisma studio`
