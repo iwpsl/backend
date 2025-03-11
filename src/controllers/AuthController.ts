@@ -67,7 +67,7 @@ export class AuthController extends Controller {
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) throw new ResponseError(404, 'Not found')
 
-    const code = `${crypto.randomInt(100000, 999999)}`
+    const code = `${crypto.randomInt(1000, 9999)}`
 
     const hashedCode = await bcryptHash(code)
     await prisma.pendingPasswordReset.upsert({
