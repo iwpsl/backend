@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output = "../../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -17,7 +18,7 @@ model User {
   email    String @unique
   password String
   role     Role   @default(USER)
-
+  is_verified Boolean @default(false)
   Profile Profile?
 }
 

@@ -16,7 +16,7 @@
   "author": "",
   "license": "ARR",
   "dependencies": {
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "^6.4.1",
     "@tsoa/runtime": "^6.6.0",
     "@types/swagger-ui-express": "^4.1.8",
     "bcryptjs": "^3.0.2",
@@ -24,6 +24,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.0",
     "swagger-ui-express": "^5.0.1",
     "tsoa": "^6.6.0"
   },
@@ -32,11 +33,27 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.13.9",
+    "@types/node": "^22.13.10",
+    "@types/nodemailer": "^6.4.17",
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9",
     "prisma": "5.22.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
+  },
+  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b",
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "prisma"
+    ],
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "prisma"
+    ]
   }
 }
