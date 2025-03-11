@@ -32,6 +32,21 @@ async function up() {
 
   await createUser(
     {
+      email: 'deirn@bai.lol',
+      password: 'test'
+    },
+    {
+      name: 'Homer Simpson',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'AB-',
+      gender: 'male',
+      heightCm: 180,
+      weightKg: 100,
+    }
+  )
+
+  await createUser(
+    {
       email: 'admin@example.com',
       password: 'admin',
       role: 'ADMIN'

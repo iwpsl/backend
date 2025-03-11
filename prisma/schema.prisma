@@ -13,12 +13,16 @@ enum Role {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  email    String @unique
-  password String
-  role     Role   @default(USER)
+  id           Int    @id @default(autoincrement())
+  email        String @unique
+  password     String
+  role         Role   @default(USER)
+  tokenVersion Int    @default(0)
 
   Profile Profile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Profile {
@@ -32,6 +36,15 @@ model Profile {
 
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PendingPasswordReset {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+  code  String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
