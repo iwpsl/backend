@@ -1,16 +1,15 @@
 import { Request } from 'express'
-import { jwtVerify } from '../utils'
-import { Role } from '@prisma/client'
+import { jwtVerify, prisma } from '../utils'
 import { ResponseError } from './error'
+import { User } from '@prisma/client'
 
 export interface AuthRequest extends Request {
-  user?: AuthUser
+  user?: User
 }
 
 export type AuthUser = {
-  userId: number
-  email: string
-  role: Role
+  id: number
+  tokenVersion: number
 }
 
 export async function expressAuthentication(req: AuthRequest, securityName: string, _scopes?: string[]) {
@@ -19,7 +18,13 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
     if (!token) throw new ResponseError(401, 'Unauthorized')
 
     try {
-      return jwtVerify<AuthUser>(token)
+      const jwtUser = jwtVerify<AuthUser>(token)
+      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
+
+      if (!user) throw new ResponseError(401, 'Invalid credentials')
+      if (jwtUser.tokenVersion !== user?.tokenVersion) throw new ResponseError(401, 'Invalid credentials')
+
+      return user
     } catch (e) {
       throw new ResponseError(401, 'Unauthorized')
     }

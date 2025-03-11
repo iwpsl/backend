@@ -16,7 +16,7 @@ export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
   public async getProfile(@Request() req: AuthRequest): Promise<ProfileBody> {
-    const profile = await prisma.profile.findUnique({ where: { userId: req.user!.userId } })
+    const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } })
     if (!profile) throw new ResponseError(404, 'Profile not found')
 
     const { id, userId, updatedAt, createdAt, ...rest } = profile
@@ -29,7 +29,7 @@ export class ProfileController extends Controller {
     @Request() req: AuthRequest,
     @Body() body: ProfileBody
   ): Promise<OkResponse> {
-    const id = req.user!.userId
+    const id = req.user!.id
     await prisma.profile.upsert({
       where: { userId: id },
       create: { userId: id, ...body, },
