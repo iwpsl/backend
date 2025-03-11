@@ -18,3 +18,6 @@
 10. Seed database, `prisma db seed`
 11. In another terminal, run the server `pnpm dev`
 12. To inspect the database, run `prisma studio`
+
+if you already install
+can you just run command 8, 11 , 12
