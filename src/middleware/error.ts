@@ -15,6 +15,7 @@ export function errorMiddleware(err: any, _req: Request, res: Response, next: Ne
   if (err instanceof ResponseError) {
     res.status(err.status).json({
       error: err.message,
+      stack: process.env.ENVIRONMENT === 'dev' ? err.stack : undefined,
       ...err.extra
     })
   } else if (err instanceof Error) {

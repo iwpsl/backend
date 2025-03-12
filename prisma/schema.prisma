@@ -12,12 +12,18 @@ enum Role {
   ADMIN
 }
 
+enum AuthType {
+  EMAIL
+  GOOGLE
+}
+
 model User {
-  id           Int    @id @default(autoincrement())
-  email        String @unique
-  password     String
-  role         Role   @default(USER)
-  tokenVersion Int    @default(0)
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  authType     AuthType
+  password     String?
+  role         Role     @default(USER)
+  tokenVersion Int      @default(0)
 
   Profile Profile?
 
