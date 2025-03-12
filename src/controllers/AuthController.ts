@@ -5,19 +5,26 @@ import dedent from 'dedent'
 import { Body, Controller, Post, Response, Route, Tags } from 'tsoa'
 import { AuthUser } from '../middleware/auth'
 import { ResponseError } from '../middleware/error'
-import { bcryptHash, jwtSign, prisma, sendMail } from '../utils'
+import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
 import { OkResponse } from './common'
 
 type SignupBody = Omit<User, 'id'>
 
 type LoginReqBody = Pick<User, 'email' | 'password'>
-type LoginResBody = {
-  token: string
+
+type TokenBody = { token: string }
+
+type ResetPasswordSendCodeBody = Pick<User, 'email'>
+
+type ResetPasswordVerifyCodeBody = {
+  email: string
+  code: string
 }
 
-type RequestResetPasswordBody = Pick<User, 'email'>
-type ResetPasswordBody = Pick<User, 'email' | 'password'> & {
-  code: string
+type ResetPasswordBody = {
+  email: string
+  password: string
+  token: string
 }
 
 // TODO: Field verification
@@ -42,7 +49,7 @@ export class AuthController extends Controller {
 
   /** Login. */
   @Post('/login')
-  public async login(@Body() body: LoginReqBody): Promise<LoginResBody> {
+  public async login(@Body() body: LoginReqBody): Promise<TokenBody> {
     const { email, password } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
@@ -59,9 +66,9 @@ export class AuthController extends Controller {
   }
 
   /** Send an email containing verification code to reset user password. */
-  @Post('/request-reset-password')
+  @Post('/reset-password/send-code')
   @Response(404, 'User not found')
-  public async requestResetPassword(@Body() body: RequestResetPasswordBody): Promise<OkResponse> {
+  public async requestResetPassword(@Body() body: ResetPasswordSendCodeBody): Promise<OkResponse> {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
@@ -84,13 +91,13 @@ export class AuthController extends Controller {
     return { message: 'Email sent' }
   }
 
-  /** Reset password. Need to request first to get the code. */
-  @Post('/reset-password')
+  /** Verify the code sent via email. */
+  @Post('/reset-password/verify-code')
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
-  public async resetPassword(@Body() body: ResetPasswordBody): Promise<OkResponse> {
-    const { email, password, code } = body
+  public async resetPasswordVerifyCode(@Body() body: ResetPasswordVerifyCodeBody): Promise<TokenBody> {
+    const { email, code } = body
 
     const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
     if (!pending) throw new ResponseError(404, 'Not found')
@@ -102,6 +109,27 @@ export class AuthController extends Controller {
     }
 
     const validCode = await bcrypt.compare(code, pending.code)
+    if (!validCode) throw new ResponseError(401, 'Invalid code')
+
+    const token = jwtSign<ResetPasswordVerifyCodeBody>(body)
+    return { token }
+  }
+
+  /** Reset password. Need to send code and verify it first to get the token. */
+  @Post('/reset-password/reset')
+  @Response(404, 'Request for reset password not found')
+  @Response(410, 'Reset request older than 10 minutes')
+  @Response(401, 'Invalid code')
+  public async resetPassword(@Body() body: ResetPasswordBody): Promise<OkResponse> {
+    const { email, password, token } = body
+
+    const jwt = jwtVerify<ResetPasswordVerifyCodeBody>(token)
+    if (email !== jwt.email) throw new ResponseError(403, 'Forbidden')
+
+    const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
+    if (!pending) throw new ResponseError(404, 'Not found')
+
+    const validCode = await bcrypt.compare(jwt.code, pending.code)
     if (!validCode) throw new ResponseError(401, 'Invalid code')
 
     await prisma.user.update({
