@@ -11,4 +11,6 @@ devenv.local.nix
 node_modules/
 .pnpm-store/
 dist/
+
 src/routes/
+docs/swagger.json

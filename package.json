@@ -30,6 +30,7 @@
     "tsoa": "^6.6.0"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -39,6 +40,7 @@
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9",
     "prisma": "5.22.0",
+    "prisma-erd-generator": "^2.0.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }

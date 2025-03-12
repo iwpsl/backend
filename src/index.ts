@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express'
 import { errorMiddleware } from './middleware/error'
 import { RegisterRoutes } from './routes/routes'
 import * as swaggerJson from './routes/swagger.json'
+import { isDev } from './utils'
 
 dotenv.config()
 
@@ -17,12 +18,16 @@ app.use(express.json())
 
 RegisterRoutes(app)
 
-app.get('/api-docs.json', (_, res) => { res.json(swaggerJson) })
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJson, {
-  swaggerOptions: {
-    persistAuthorization: true
-  }
-}))
+if (isDev) {
+  app.use('/docs', express.static('docs'))
+
+  app.get('/docs/api.json', (_, res) => { res.json(swaggerJson) })
+  app.use('/docs/api', swaggerUi.serve, swaggerUi.setup(swaggerJson, {
+    swaggerOptions: {
+      persistAuthorization: true
+    }
+  }))
+}
 
 app.use(errorMiddleware)
 
