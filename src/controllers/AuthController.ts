@@ -1,4 +1,4 @@
-import { User } from '@prisma/client'
+import { Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import dedent from 'dedent'
@@ -8,13 +8,25 @@ import { ResponseError } from '../middleware/error'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
 import { OkResponse } from './common'
 
-type SignupBody = Omit<User, 'id'>
+type SignupBody = {
+  email: string
+  password: string
+  role: Role
+  tokenVersion: number
+}
 
-type LoginReqBody = Pick<User, 'email' | 'password'>
+type LoginReqBody = {
+  email: string
+  password: string
+}
 
-type TokenBody = { token: string }
+type TokenBody = {
+  token: string
+}
 
-type ResetPasswordSendCodeBody = Pick<User, 'email'>
+type ResetPasswordSendCodeBody = {
+  email: string
+}
 
 type ResetPasswordVerifyCodeBody = {
   email: string

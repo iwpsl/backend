@@ -1,4 +1,3 @@
-import { Profile } from '@prisma/client'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
 import { AuthRequest } from '../middleware/auth'
 import { ResponseError } from '../middleware/error'
@@ -6,7 +5,14 @@ import { roleMiddleware } from '../middleware/role'
 import { prisma } from '../utils'
 import { OkResponse } from './common'
 
-type ProfileBody = Omit<Profile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+type ProfileBody = {
+    name: string
+    dateOfBirth: Date
+    gender: string
+    heightCm: number
+    weightKg: number
+    bloodType: string
+}
 
 @Route('profile')
 @Tags('Profile')
