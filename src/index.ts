@@ -1,6 +1,7 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
+import path from 'path'
 import swaggerUi from 'swagger-ui-express'
 import { errorMiddleware } from './middleware/error'
 import { RegisterRoutes } from './routes/routes'
@@ -21,7 +22,7 @@ RegisterRoutes(app)
 if (isDev) {
   app.use('/docs', express.static('docs'))
 
-  app.get('/docs/api.json', (_, res) => { res.json(swaggerJson) })
+  app.get('/docs/api.json', (_, res) => { res.sendFile(path.join(__dirname, 'routes/swagger.json')) })
   app.use('/docs/api', swaggerUi.serve, swaggerUi.setup(swaggerJson, {
     swaggerOptions: {
       persistAuthorization: true
