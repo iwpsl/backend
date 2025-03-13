@@ -2,8 +2,8 @@ import { Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import dedent from 'dedent'
-import { Body, Controller, Post, Response, Route, Tags } from 'tsoa'
-import { AuthUser } from '../middleware/auth'
+import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
+import { AuthRequest, AuthUser } from '../middleware/auth'
 import { ResponseError } from '../middleware/error'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
 import { OkResponse } from './common'
@@ -74,7 +74,29 @@ export class AuthController extends Controller {
       id: user.id,
       tokenVersion: user.tokenVersion
     })
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        tokenVersion: { increment: 1 }
+      }
+    })
+
     return { token }
+  }
+
+  /** Logout. */
+  @Get('/logout')
+  @Security('auth')
+  public async logout(@Request() req: AuthRequest): Promise<OkResponse> {
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        tokenVersion: { increment: 1 }
+      }
+    })
+
+    return { message: 'Logged out' }
   }
 
   /** Send an email containing verification code to reset user password. */
