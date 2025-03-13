@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
+export const isDev = process.env.ENVIRONMENT === 'dev'
+
 export const prisma = new PrismaClient()
 
 export function jwtSign<T extends Record<string, unknown>>(payload: T, option?: jwt.SignOptions) {

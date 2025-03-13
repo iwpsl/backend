@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
+import { isDev } from '../utils'
 
 export class ResponseError<T> extends Error {
   status: number
@@ -20,7 +21,7 @@ export function errorMiddleware(err: any, _req: Request, res: Response, next: Ne
   } else if (err instanceof Error) {
     res.status(500).json({
       error: 'Internal server errror',
-      stack: process.env.ENVIRONMENT === 'dev' ? err.stack : undefined
+      stack: isDev ? err.stack : undefined
     })
   } else {
     next()
