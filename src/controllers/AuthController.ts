@@ -47,27 +47,17 @@ export class AuthController extends Controller {
   /** Sign up. */
   @Post('/signup')
   public async signup(@Body() body: SignupBody): Promise<OkResponse> {
-    const { email, password, role } = body;
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        throw new Error("Invalid email format");
-    }
-
-    // Set default role if not provided
-    const userRole = role ?? "USER"; 
+    const { email, password, role } = body
 
     await prisma.user.create({
       data: {
-        email,
-        role: userRole,
+        email, role,
         password: await bcryptHash(password)
       }
-    });
+    })
 
-    return { message: "User created" };
-}
+    return { message: 'User created' }
+  }
 
   /** Login. */
   @Post('/login')

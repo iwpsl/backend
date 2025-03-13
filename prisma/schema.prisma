@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output = "../../node_modules/.prisma/client"
 }
 
 generator erd {
@@ -24,7 +23,7 @@ model User {
   password     String
   role         Role   @default(USER)
   tokenVersion Int    @default(0)
-  is_verified Boolean @default(false)
+
   Profile Profile?
 
   createdAt DateTime @default(now())
