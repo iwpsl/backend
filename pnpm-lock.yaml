@@ -2068,6 +2068,10 @@ packages:
     resolution: {integrity: sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==}
     engines: {node: '>=10'}
 
+  supports-preserve-symlinks-flag@1.0.0:
+    resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
+    engines: {node: '>= 0.4'}
+
   swagger-ui-dist@5.20.0:
     resolution: {integrity: sha512-V5pozVTZxivdoQq/SQWxj3A4cOu5opk9MEbcZANX3Pj8X8xCrD1QCtBT7744Pz9msOvt0nnmy9JvM/9PGonCdg==}
 
@@ -4615,17 +4619,9 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  swagger-ui-dist@5.20.1:
-=======
   supports-preserve-symlinks-flag@1.0.0: {}
 
   swagger-ui-dist@5.20.0:
->>>>>>> 75af19ed73ee8422f2ac294475ac271e0bcfc209
-=======
-  swagger-ui-dist@5.20.0:
->>>>>>> parent of 2a832fc (Merge branch 'dev1')
     dependencies:
       '@scarf/scarf': 1.4.0
 
@@ -4711,17 +4707,9 @@ snapshots:
 
   ts-deepmerge@7.0.2: {}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2):
-=======
   ts-interface-checker@0.1.13: {}
 
   ts-node@10.9.2(@types/node@22.13.9)(typescript@5.8.2):
->>>>>>> 75af19ed73ee8422f2ac294475ac271e0bcfc209
-=======
-  ts-node@10.9.2(@types/node@22.13.9)(typescript@5.8.2):
->>>>>>> parent of 2a832fc (Merge branch 'dev1')
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
