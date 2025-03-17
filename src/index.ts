@@ -3,10 +3,12 @@ import dotenv from 'dotenv'
 import express from 'express'
 import path from 'path'
 import swaggerUi from 'swagger-ui-express'
+import { dataMiddleware } from './middleware/data'
 import { errorMiddleware } from './middleware/error'
 import { RegisterRoutes } from './routes/routes'
 import * as swaggerJson from './routes/swagger.json'
 import { isDev } from './utils'
+import { authErrorMiddleware } from './middleware/auth'
 
 dotenv.config()
 
@@ -16,6 +18,7 @@ const port = process.env.PORT || 3000
 // TODO: Configure CORS
 app.use(cors())
 app.use(express.json())
+app.use(dataMiddleware)
 
 RegisterRoutes(app)
 
@@ -30,6 +33,7 @@ if (isDev) {
   }))
 }
 
+app.use(authErrorMiddleware)
 app.use(errorMiddleware)
 
 app.listen(port, () => {

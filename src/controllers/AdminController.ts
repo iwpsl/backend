@@ -1,21 +1,17 @@
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
 import { roleMiddleware } from '../middleware/role'
 import { prisma } from '../utils'
+import { Api, ok } from '../api'
 
-type PublicProfile = {
-    name: string
-    dateOfBirth: Date
-    gender: string
-    heightCm: number
-    weightKg: number
-    bloodType: string
-}
-
-type PublicUser = {
-    email: string
-}
-
-type ProfileResponse = Array<PublicUser & PublicProfile>
+type AdminProfileData = Array<{
+  email: string
+  name: string
+  dateOfBirth: Date
+  gender: string
+  heightCm: number
+  weightKg: number
+  bloodType: string
+}>
 
 @Route('admin')
 @Tags('Admin')
@@ -24,7 +20,7 @@ type ProfileResponse = Array<PublicUser & PublicProfile>
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profiles')
-  public async getProfiles(): Promise<ProfileResponse> {
+  public async getProfiles(): Api<AdminProfileData> {
     const r = await prisma.user.findMany({
       where: {
         role: { not: 'ADMIN' },
@@ -45,6 +41,6 @@ export class AdminController extends Controller {
       }
     })
 
-    return r.map(({ Profile, ...user }) => ({ ...user, ...Profile! }))
+    return ok(r.map(({ Profile, ...user }) => ({ ...user, ...Profile! })))
   }
 }
