@@ -6,7 +6,7 @@ export type ApiRes<T> = {
 }
 
 export type Api<T> = Promise<ApiRes<T>>
-export type SimpleRes = ApiRes<undefined>
+export type SimpleRes = ApiRes<{}>
 export type SimpleApi = Promise<SimpleRes>
 
 export function ok<T>(data?: T): ApiRes<T> {
