@@ -6,7 +6,9 @@ export interface ApiRes<T> {
 }
 
 export type Api<T> = Promise<ApiRes<T>>
-export type SimpleRes = ApiRes<object>
+
+// eslint-disable-next-line ts/no-empty-object-type
+export type SimpleRes = ApiRes<{}>
 export type SimpleApi = Promise<SimpleRes>
 
 export function ok<T>(data?: T): ApiRes<T> {
