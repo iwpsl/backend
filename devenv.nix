@@ -16,6 +16,14 @@
     nodePackages.prisma
   ];
 
+  git-hooks.hooks = {
+    eslint = {
+      enable = true;
+      files = ".*";
+      pass_filenames = false;
+    };
+  };
+
   env = {
     PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/schema-engine";
     PRISMA_QUERY_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/query-engine";

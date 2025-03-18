@@ -1,4 +1,4 @@
-export type ApiRes<T> = {
+export interface ApiRes<T> {
   success: boolean
   statusCode: number
   data: T | null
@@ -6,7 +6,7 @@ export type ApiRes<T> = {
 }
 
 export type Api<T> = Promise<ApiRes<T>>
-export type SimpleRes = ApiRes<{}>
+export type SimpleRes = ApiRes<object>
 export type SimpleApi = Promise<SimpleRes>
 
 export function ok<T>(data?: T): ApiRes<T> {
@@ -14,7 +14,7 @@ export function ok<T>(data?: T): ApiRes<T> {
     success: true,
     statusCode: 200,
     data: data ?? null,
-    error: null
+    error: null,
   }
 }
 
@@ -23,6 +23,6 @@ export function err<T>(statusCode: number, error: string, data?: T): ApiRes<T> {
     success: false,
     statusCode,
     error: error ?? null,
-    data: data ?? null
+    data: data ?? null,
   }
 }

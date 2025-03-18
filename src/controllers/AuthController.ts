@@ -1,37 +1,38 @@
-import { Role } from '@prisma/client'
+import type { Role } from '@prisma/client'
+import type { Api, SimpleApi } from '../api'
+import type { AuthRequest, AuthUser } from '../middleware/auth'
+import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
-import { AuthRequest, AuthUser } from '../middleware/auth'
+import { err, ok } from '../api'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
-import { Api, err, ok, SimpleApi } from '../api'
 
-type SignupData = {
+interface SignupData {
   email: string
   password: string
   role: Role
 }
 
-type LoginData = {
+interface LoginData {
   email: string
   password: string
 }
 
-type TokenData = {
+interface TokenData {
   token: string
 }
 
-type ResetPasswordSendCodeData = {
+interface ResetPasswordSendCodeData {
   email: string
 }
 
-type ResetPasswordVerifyCodeData = {
+interface ResetPasswordVerifyCodeData {
   email: string
   code: string
 }
 
-type ResetPasswordData = {
+interface ResetPasswordData {
   email: string
   password: string
   token: string
@@ -49,9 +50,10 @@ export class AuthController extends Controller {
 
     await prisma.user.create({
       data: {
-        email, role,
-        password: await bcryptHash(password)
-      }
+        email,
+        role,
+        password: await bcryptHash(password),
+      },
     })
 
     return ok()
@@ -63,21 +65,23 @@ export class AuthController extends Controller {
     const { email, password } = body
 
     let user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return err(401, 'Invalid credentials')
+    if (!user)
+      return err(401, 'Invalid credentials')
 
     const validPassword = await bcrypt.compare(password, user.password)
-    if (!validPassword) return err(401, 'Invalid credentials')
+    if (!validPassword)
+      return err(401, 'Invalid credentials')
 
     user = await prisma.user.update({
       where: { email },
       data: {
-        tokenVersion: { increment: 1 }
-      }
+        tokenVersion: { increment: 1 },
+      },
     })
 
     const token = jwtSign<AuthUser>({
       id: user.id,
-      tokenVersion: user.tokenVersion
+      tokenVersion: user.tokenVersion,
     })
 
     return ok({ token })
@@ -90,8 +94,8 @@ export class AuthController extends Controller {
     await prisma.user.update({
       where: { id: req.user!.id },
       data: {
-        tokenVersion: { increment: 1 }
-      }
+        tokenVersion: { increment: 1 },
+      },
     })
 
     return ok()
@@ -104,7 +108,8 @@ export class AuthController extends Controller {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) return err(404, 'Not found')
+    if (!user)
+      return err(404, 'Not found')
 
     const code = `${crypto.randomInt(1000, 9999)}`
 
@@ -112,7 +117,7 @@ export class AuthController extends Controller {
     await prisma.pendingPasswordReset.upsert({
       where: { email },
       create: { email, code: hashedCode },
-      update: { code: hashedCode }
+      update: { code: hashedCode },
     })
 
     await sendMail(email, 'Password Reset', dedent`
@@ -132,7 +137,8 @@ export class AuthController extends Controller {
     const { email, code } = body
 
     const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
-    if (!pending) return err(404, 'Not found')
+    if (!pending)
+      return err(404, 'Not found')
 
     const isLessThan10Min = (Date.now() - pending.updatedAt.getTime()) <= (10 * 60 * 1000)
     if (!isLessThan10Min) {
@@ -141,7 +147,8 @@ export class AuthController extends Controller {
     }
 
     const validCode = await bcrypt.compare(code, pending.code)
-    if (!validCode) return err(401, 'Invalid code')
+    if (!validCode)
+      return err(401, 'Invalid code')
 
     const token = jwtSign<ResetPasswordVerifyCodeData>(body)
     return ok({ token })
@@ -156,20 +163,23 @@ export class AuthController extends Controller {
     const { email, password, token } = body
 
     const jwt = jwtVerify<ResetPasswordVerifyCodeData>(token)
-    if (email !== jwt.email) return err(403, 'Forbidden')
+    if (email !== jwt.email)
+      return err(403, 'Forbidden')
 
     const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
-    if (!pending) return err(404, 'Not found')
+    if (!pending)
+      return err(404, 'Not found')
 
     const validCode = await bcrypt.compare(jwt.code, pending.code)
-    if (!validCode) return err(401, 'Invalid code')
+    if (!validCode)
+      return err(401, 'Invalid code')
 
     await prisma.user.update({
       where: { email },
       data: {
         password: await bcryptHash(password),
-        tokenVersion: { increment: 1 }
-      }
+        tokenVersion: { increment: 1 },
+      },
     })
 
     await prisma.pendingPasswordReset.delete({ where: { email } })

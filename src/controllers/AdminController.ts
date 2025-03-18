@@ -1,7 +1,8 @@
+import type { Api } from '../api'
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
+import { ok } from '../api'
 import { roleMiddleware } from '../middleware/role'
 import { prisma } from '../utils'
-import { Api, ok } from '../api'
 
 type AdminProfileData = Array<{
   email: string
@@ -24,7 +25,7 @@ export class AdminController extends Controller {
     const r = await prisma.user.findMany({
       where: {
         role: { not: 'ADMIN' },
-        Profile: { isNot: null }
+        Profile: { isNot: null },
       },
       select: {
         email: true,
@@ -36,9 +37,9 @@ export class AdminController extends Controller {
             heightCm: true,
             weightKg: true,
             bloodType: true,
-          }
-        }
-      }
+          },
+        },
+      },
     })
 
     return ok(r.map(({ Profile, ...user }) => ({ ...user, ...Profile! })))

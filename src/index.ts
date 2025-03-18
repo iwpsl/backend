@@ -1,14 +1,15 @@
+import path from 'node:path'
+import process from 'node:process'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
-import path from 'path'
 import swaggerUi from 'swagger-ui-express'
+import { authErrorMiddleware } from './middleware/auth'
 import { dataMiddleware } from './middleware/data'
 import { errorMiddleware } from './middleware/error'
 import { RegisterRoutes } from './routes/routes'
 import * as swaggerJson from './routes/swagger.json'
 import { isDev } from './utils'
-import { authErrorMiddleware } from './middleware/auth'
 
 dotenv.config()
 
@@ -25,11 +26,13 @@ RegisterRoutes(app)
 if (isDev) {
   app.use('/docs', express.static('docs'))
 
-  app.get('/docs/api.json', (_, res) => { res.sendFile(path.join(__dirname, 'routes/swagger.json')) })
+  app.get('/docs/api.json', (_, res) => {
+    res.sendFile(path.join(__dirname, 'routes/swagger.json'))
+  })
   app.use('/docs/api', swaggerUi.serve, swaggerUi.setup(swaggerJson, {
     swaggerOptions: {
-      persistAuthorization: true
-    }
+      persistAuthorization: true,
+    },
   }))
 }
 
