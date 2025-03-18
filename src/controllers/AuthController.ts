@@ -43,6 +43,7 @@ interface ResetPasswordData {
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
+  private emailService = new EmailService();
   /** Sign up. */
   @Post('/signup')
   public async signup(@Body() body: SignupData): SimpleApi {
