@@ -19,6 +19,7 @@ model User {
   password String
   role     Role   @default(USER)
   is_verified Boolean @default(false)
+  verificationToken String? @unique
   Profile Profile?
 }
 

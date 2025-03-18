@@ -2,6 +2,7 @@ import { User } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { Body, Controller, Post, Route, Tags } from 'tsoa'
 import { AuthUser } from '../middleware/auth'
+import { EmailService } from "../services/EmailService";
 import { bcryptHash, jwtSign, prisma } from '../utils'
 import { OkResponse } from './common'
 import { ResponseError } from '../middleware/error'
@@ -18,6 +19,7 @@ type LoginResBody = {
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
+  private emailService = new EmailService();
   /** Sign up. */
   @Post('/signup')
   public async signup(@Body() body: SignupBody): Promise<OkResponse> {
@@ -36,12 +38,18 @@ export class AuthController extends Controller {
       data: {
         email,
         role: userRole,
-        password: await bcryptHash(password)
-      }
+        password: await bcryptHash(password),
+        isVerified: false,
+        verificationToken,
+      },
     });
 
-    return { message: "User created" };
-}
+     // Send verification email
+     await this.emailService.sendVerificationEmail(email, verificationToken);
+
+     return { message: "User created. Please check your email to verify your account." };
+   }
+
 
   /** Login. */
   @Post('/login')
