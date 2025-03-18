@@ -1,4 +1,5 @@
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
+import process from 'node:process'
 import { bcryptHash, prisma } from '../src/utils'
 
 async function createUser(user: Omit<Prisma.UserCreateInput, 'authType'>, profile?: Omit<Prisma.ProfileCreateInput, 'userId' | 'user'>) {
@@ -8,8 +9,8 @@ async function createUser(user: Omit<Prisma.UserCreateInput, 'authType'>, profil
     await prisma.profile.create({
       data: {
         userId: res.id,
-        ...profile
-      }
+        ...profile,
+      },
     })
   }
 }
@@ -18,7 +19,7 @@ async function up() {
   await createUser(
     {
       email: 'alice@example.com',
-      password: 'test'
+      password: 'test',
     },
     {
       name: 'Alice Smith',
@@ -27,13 +28,13 @@ async function up() {
       gender: 'female',
       heightCm: 165,
       weightKg: 60,
-    }
+    },
   )
 
   await createUser(
     {
       email: 'deirn@bai.lol',
-      password: 'test'
+      password: 'test',
     },
     {
       name: 'Homer Simpson',
@@ -42,15 +43,75 @@ async function up() {
       gender: 'male',
       heightCm: 180,
       weightKg: 100,
-    }
+    },
+  )
+
+  await createUser(
+    {
+      email: 'office.anggoro@gmail.com',
+      password: 'test',
+    },
+    {
+      name: 'Loli Anggoro',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'AB-',
+      gender: 'male',
+      heightCm: 180,
+      weightKg: 100,
+    },
+  )
+
+  await createUser(
+    {
+      email: 'mamanjrebeng22@gmail.com',
+      password: 'test',
+    },
+    {
+      name: 'Maman UwU',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'AB-',
+      gender: 'male',
+      heightCm: 180,
+      weightKg: 100,
+    },
+  )
+
+  await createUser(
+    {
+      email: 'segootot69@gmail.com',
+      password: 'test',
+    },
+    {
+      name: 'Sego Otot',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'AB-',
+      gender: 'male',
+      heightCm: 180,
+      weightKg: 100,
+    },
+  )
+
+  await createUser(
+    {
+      email: 'lintangharis18@gmail.com',
+      password: 'test',
+    },
+    {
+      name: 'Lintang',
+      dateOfBirth: new Date('1999-01-23'),
+      bloodType: 'AB-',
+      gender: 'male',
+      heightCm: 180,
+      weightKg: 100,
+    },
   )
 
   await createUser(
     {
       email: 'admin@example.com',
       password: 'admin',
-      role: 'ADMIN'
-    }
+      role: 'ADMIN',
+    },
   )
 }
 

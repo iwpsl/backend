@@ -1,16 +1,19 @@
+import process from 'node:process'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { OAuth2Client } from 'google-auth-library'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
+export const isDev = process.env.ENVIRONMENT === 'dev'
+
 export const prisma = new PrismaClient()
 
-export function jwtSign<T extends Record<string, unknown>>(payload: T, option?: jwt.SignOptions) {
+export function jwtSign<T extends Record<string, any>>(payload: T, option?: jwt.SignOptions) {
   return jwt.sign(payload, process.env.JWT_SECRET as string, option)
 }
 
-export function jwtVerify<T extends Record<string, unknown>>(token: string) {
+export function jwtVerify<T extends Record<string, any>>(token: string) {
   return jwt.verify(token, process.env.JWT_SECRET as string) as T
 }
 
@@ -22,14 +25,16 @@ export const mailer = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
+    pass: process.env.SMTP_PASS,
+  },
 })
 
 export async function sendMail(to: string, subject: string, text: string) {
   await mailer.sendMail({
     from: `${process.env.SMTP_NAME} <${process.env.SMTP_USER}>`,
-    to, subject, text
+    to,
+    subject,
+    text,
   })
 }
 

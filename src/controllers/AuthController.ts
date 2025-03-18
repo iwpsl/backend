@@ -1,27 +1,46 @@
-import { User } from '@prisma/client'
+import type { Role } from '@prisma/client'
+import type { Api, SimpleApi } from '../api'
+import type { AuthRequest, AuthUser } from '../middleware/auth'
+import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
 import dedent from 'dedent'
-import { Body, Controller, Post, Response, Route, Tags } from 'tsoa'
-import { AuthUser } from '../middleware/auth'
+import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
+import { err, ok } from '../api'
 import { ResponseError } from '../middleware/error'
-import { bcryptHash, GOOGLE_OAUTH_CLIENT_ID, jwtSign, NoUndefinedField, oauth, prisma, sendMail } from '../utils'
-import { OkResponse } from './common'
+import { bcryptHash, GOOGLE_OAUTH_CLIENT_ID, jwtSign, jwtVerify, oauth, prisma, sendMail } from '../utils'
 
-type SignupBody = NoUndefinedField<Omit<User, 'id'>>
+interface SignupData {
+  email: string
+  password: string
+  role: Role
+}
 
-type LoginReqBody = NoUndefinedField<Pick<User, 'email' | 'password'>>
-type LoginResBody = {
+interface LoginData {
+  email: string
+  password: string
+}
+
+interface TokenData {
   token: string
 }
 
-type LoginGoogleBody = {
+interface LoginGoogleBody {
   idToken: string
 }
 
-type RequestResetPasswordBody = Pick<User, 'email'>
-type ResetPasswordBody = NoUndefinedField<Pick<User, 'email' | 'password'>> & {
+interface ResetPasswordSendCodeData {
+  email: string
+}
+
+interface ResetPasswordVerifyCodeData {
+  email: string
   code: string
+}
+
+interface ResetPasswordData {
+  email: string
+  password: string
+  token: string
 }
 
 // TODO: Field verification
@@ -31,39 +50,65 @@ type ResetPasswordBody = NoUndefinedField<Pick<User, 'email' | 'password'>> & {
 export class AuthController extends Controller {
   /** Sign up. */
   @Post('/signup')
-  public async signup(@Body() body: SignupBody): Promise<OkResponse> {
+  public async signup(@Body() body: SignupData): SimpleApi {
     const { email, password, role } = body
 
     await prisma.user.create({
       data: {
-        email, role,
+        email,
+        role,
         password: await bcryptHash(password),
-        authType: 'EMAIL'
-      }
+        authType: 'EMAIL',
+      },
     })
 
-    return { message: 'User created' }
+    return ok()
   }
 
   /** Login. */
   @Post('/login')
   @Response(401, 'Invalid username or password')
   @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
-  public async login(@Body() body: LoginReqBody): Promise<LoginResBody> {
+  public async login(@Body() body: LoginData): Api<TokenData> {
     const { email, password } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) throw new ResponseError(401, 'Invalid credentials')
-    if (!user.password) throw new ResponseError(403, 'Forbidden')
+    if (!user)
+      return err(401, 'Invalid credentials')
+    if (!user.password)
+      return err(403, 'Forbidden')
 
     const validPassword = await bcrypt.compare(password, user.password)
-    if (!validPassword) throw new ResponseError(401, 'Invalid credentials')
+    if (!validPassword)
+      return err(401, 'Invalid credentials')
+
+    user = await prisma.user.update({
+      where: { email },
+      data: {
+        tokenVersion: { increment: 1 },
+      },
+    })
 
     const token = jwtSign<AuthUser>({
       id: user.id,
-      tokenVersion: user.tokenVersion
+      tokenVersion: user.tokenVersion,
     })
-    return { token }
+
+    return ok({ token })
+  }
+
+  /** Logout. */
+  @Get('/logout')
+  @Security('auth')
+  public async logout(@Request() req: AuthRequest): SimpleApi {
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        tokenVersion: { increment: 1 },
+      },
+    })
+
+    return ok()
   }
 
   /** Login using Google OAuth. */
@@ -73,38 +118,42 @@ export class AuthController extends Controller {
 
     const ticket = await oauth.verifyIdToken({
       idToken,
-      audience: GOOGLE_OAUTH_CLIENT_ID
+      audience: GOOGLE_OAUTH_CLIENT_ID,
     })
 
     const payload = ticket.getPayload()
-    if (!payload) throw new ResponseError(404, 'Not found')
+    if (!payload)
+      throw new ResponseError(404, 'Not found')
 
     const { email } = payload
-    if (!email) throw new ResponseError(401, 'Invalid credentials')
+    if (!email)
+      throw new ResponseError(401, 'Invalid credentials')
 
     const user = await prisma.user.upsert({
       where: { email },
       update: {},
-      create: { email, authType: 'GOOGLE' }
+      create: { email, authType: 'GOOGLE' },
     })
 
     const token = jwtSign<AuthUser>({
       id: user.id,
-      tokenVersion: user.tokenVersion
+      tokenVersion: user.tokenVersion,
     })
     return { token }
   }
 
   /** Send an email containing verification code to reset user password. */
-  @Post('/request-reset-password')
+  @Post('/reset-password/send-code')
   @Response(404, 'User not found')
   @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
-  public async requestResetPassword(@Body() body: RequestResetPasswordBody): Promise<OkResponse> {
+  public async requestResetPassword(@Body() body: ResetPasswordSendCodeData): SimpleApi {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) throw new ResponseError(404, 'Not found')
-    if (!user.password) throw new ResponseError(403, 'Forbidden')
+    if (!user)
+      return err(404, 'Not found')
+    if (!user.password)
+      return err(403, 'Forbidden')
 
     const code = `${crypto.randomInt(1000, 9999)}`
 
@@ -112,7 +161,7 @@ export class AuthController extends Controller {
     await prisma.pendingPasswordReset.upsert({
       where: { email },
       create: { email, code: hashedCode },
-      update: { code: hashedCode }
+      update: { code: hashedCode },
     })
 
     await sendMail(email, 'Password Reset', dedent`
@@ -120,38 +169,64 @@ export class AuthController extends Controller {
       Code: ${code}
     `)
 
-    return { message: 'Email sent' }
+    return ok()
   }
 
-  /** Reset password. Need to request first to get the code. */
-  @Post('/reset-password')
+  /** Verify the code sent via email. */
+  @Post('/reset-password/verify-code')
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
-  public async resetPassword(@Body() body: ResetPasswordBody): Promise<OkResponse> {
-    const { email, password, code } = body
+  public async resetPasswordVerifyCode(@Body() body: ResetPasswordVerifyCodeData): Api<TokenData> {
+    const { email, code } = body
 
     const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
-    if (!pending) throw new ResponseError(404, 'Not found')
+    if (!pending)
+      return err(404, 'Not found')
 
     const isLessThan10Min = (Date.now() - pending.updatedAt.getTime()) <= (10 * 60 * 1000)
     if (!isLessThan10Min) {
       await prisma.pendingPasswordReset.delete({ where: { email } })
-      throw new ResponseError(410, 'Expired code')
+      return err(410, 'Expired code')
     }
 
     const validCode = await bcrypt.compare(code, pending.code)
-    if (!validCode) throw new ResponseError(401, 'Invalid code')
+    if (!validCode)
+      return err(401, 'Invalid code')
+
+    const token = jwtSign<ResetPasswordVerifyCodeData>(body)
+    return ok({ token })
+  }
+
+  /** Reset password. Need to send code and verify it first to get the token. */
+  @Post('/reset-password/reset')
+  @Response(404, 'Request for reset password not found')
+  @Response(410, 'Reset request older than 10 minutes')
+  @Response(401, 'Invalid code')
+  public async resetPassword(@Body() body: ResetPasswordData): SimpleApi {
+    const { email, password, token } = body
+
+    const jwt = jwtVerify<ResetPasswordVerifyCodeData>(token)
+    if (email !== jwt.email)
+      return err(403, 'Forbidden')
+
+    const pending = await prisma.pendingPasswordReset.findUnique({ where: { email } })
+    if (!pending)
+      return err(404, 'Not found')
+
+    const validCode = await bcrypt.compare(jwt.code, pending.code)
+    if (!validCode)
+      return err(401, 'Invalid code')
 
     await prisma.user.update({
       where: { email },
       data: {
         password: await bcryptHash(password),
-        tokenVersion: { increment: 1 }
-      }
+        tokenVersion: { increment: 1 },
+      },
     })
 
     await prisma.pendingPasswordReset.delete({ where: { email } })
-    return { message: 'Password reset' }
+    return ok()
   }
 }

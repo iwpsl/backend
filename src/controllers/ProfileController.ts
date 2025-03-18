@@ -1,12 +1,18 @@
-import { Profile } from '@prisma/client'
+import type { Api, SimpleApi } from '../api'
+import type { AuthRequest } from '../middleware/auth'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
-import { AuthRequest } from '../middleware/auth'
-import { ResponseError } from '../middleware/error'
+import { err, ok } from '../api'
 import { roleMiddleware } from '../middleware/role'
 import { prisma } from '../utils'
-import { OkResponse } from './common'
 
-type ProfileBody = Omit<Profile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+interface ProfileData {
+  name: string
+  dateOfBirth: Date
+  gender: string
+  heightCm: number
+  weightKg: number
+  bloodType: string
+}
 
 @Route('profile')
 @Tags('Profile')
@@ -15,27 +21,28 @@ type ProfileBody = Omit<Profile, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
 export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
-  public async getProfile(@Request() req: AuthRequest): Promise<ProfileBody> {
+  public async getProfile(@Request() req: AuthRequest): Api<ProfileData> {
     const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } })
-    if (!profile) throw new ResponseError(404, 'Profile not found')
+    if (!profile)
+      return err(404, 'Profile not found')
 
     const { id, userId, updatedAt, createdAt, ...rest } = profile
-    return rest
+    return ok(rest)
   }
 
   /** Create or update the profile for currently logged-in user. */
   @Post()
   public async postProfile(
     @Request() req: AuthRequest,
-    @Body() body: ProfileBody
-  ): Promise<OkResponse> {
+    @Body() body: ProfileData,
+  ): SimpleApi {
     const id = req.user!.id
     await prisma.profile.upsert({
       where: { userId: id },
-      create: { userId: id, ...body, },
-      update: body
+      create: { userId: id, ...body },
+      update: body,
     })
 
-    return { message: 'Success' }
+    return ok()
   }
 }
