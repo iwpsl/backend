@@ -40,5 +40,3 @@ export async function sendMail(to: string, subject: string, text: string) {
 
 export const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID
 export const oauth = new OAuth2Client(GOOGLE_OAUTH_CLIENT_ID)
-
-export type NoUndefinedField<T> = { [P in keyof T]-?: NoUndefinedField<NonNullable<T[P]>> }

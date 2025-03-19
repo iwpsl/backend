@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
-import { ResponseError } from '../middleware/error'
 import { bcryptHash, GOOGLE_OAUTH_CLIENT_ID, jwtSign, jwtVerify, oauth, prisma, sendMail } from '../utils'
 
 interface SignupData {
@@ -72,7 +71,7 @@ export class AuthController extends Controller {
   public async login(@Body() body: LoginData): Api<TokenData> {
     const { email, password } = body
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    let user = await prisma.user.findUnique({ where: { email } })
     if (!user)
       return err(401, 'Invalid credentials')
     if (!user.password)
@@ -113,7 +112,7 @@ export class AuthController extends Controller {
 
   /** Login using Google OAuth. */
   @Post('/login/google')
-  public async loginGoogle(@Body() body: LoginGoogleBody): Promise<LoginResBody> {
+  public async loginGoogle(@Body() body: LoginGoogleBody): Api<TokenData> {
     const { idToken } = body
 
     const ticket = await oauth.verifyIdToken({
@@ -123,11 +122,11 @@ export class AuthController extends Controller {
 
     const payload = ticket.getPayload()
     if (!payload)
-      throw new ResponseError(404, 'Not found')
+      return err(404, 'Not found')
 
     const { email } = payload
     if (!email)
-      throw new ResponseError(401, 'Invalid credentials')
+      return err(401, 'Invalid credentials')
 
     const user = await prisma.user.upsert({
       where: { email },
@@ -139,7 +138,7 @@ export class AuthController extends Controller {
       id: user.id,
       tokenVersion: user.tokenVersion,
     })
-    return { token }
+    return ok({ token })
   }
 
   /** Send an email containing verification code to reset user password. */
