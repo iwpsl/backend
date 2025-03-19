@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
 export const isDev = process.env.ENVIRONMENT === 'dev'
+export const port = process.env.PORT || '3000'
 
 export const prisma = new PrismaClient()
 
