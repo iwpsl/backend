@@ -74,10 +74,10 @@ export class AuthController extends Controller {
     let user = await prisma.user.findUnique({ where: { email } })
     if (!user)
       return err(401, 'Invalid credentials')
-    if (!user.password)
+    if (user.authType !== 'EMAIL')
       return err(403, 'Forbidden')
 
-    const validPassword = await bcrypt.compare(password, user.password)
+    const validPassword = await bcrypt.compare(password, user.password!)
     if (!validPassword)
       return err(401, 'Invalid credentials')
 
@@ -94,20 +94,6 @@ export class AuthController extends Controller {
     })
 
     return ok({ token })
-  }
-
-  /** Logout. */
-  @Get('/logout')
-  @Security('auth')
-  public async logout(@Request() req: AuthRequest): SimpleApi {
-    await prisma.user.update({
-      where: { id: req.user!.id },
-      data: {
-        tokenVersion: { increment: 1 },
-      },
-    })
-
-    return ok()
   }
 
   /** Login using Google OAuth. */
@@ -141,17 +127,31 @@ export class AuthController extends Controller {
     return ok({ token })
   }
 
+  /** Logout. */
+  @Get('/logout')
+  @Security('auth')
+  public async logout(@Request() req: AuthRequest): SimpleApi {
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: {
+        tokenVersion: { increment: 1 },
+      },
+    })
+
+    return ok()
+  }
+
   /** Send an email containing verification code to reset user password. */
   @Post('/reset-password/send-code')
   @Response(404, 'User not found')
   @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
-  public async requestResetPassword(@Body() body: ResetPasswordSendCodeData): SimpleApi {
+  public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): SimpleApi {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user)
       return err(404, 'Not found')
-    if (!user.password)
+    if (user.authType !== 'EMAIL')
       return err(403, 'Forbidden')
 
     const code = `${crypto.randomInt(1000, 9999)}`
