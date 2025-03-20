@@ -52,10 +52,10 @@ export class AuthController extends Controller {
 
   /** Sign up. */
   @Post('/signup')
-  public async signup(@Body() body: SignupData): SimpleApi {
+  public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email,
         role,
@@ -63,7 +63,12 @@ export class AuthController extends Controller {
       },
     })
 
-    return ok()
+    const token = jwtSign<AuthUser>({
+      id: user.id,
+      tokenVersion: user.tokenVersion,
+    })
+
+    return ok({ token })
   }
 
   /** Login. */
