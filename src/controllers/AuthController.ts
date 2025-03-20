@@ -43,6 +43,13 @@ interface ResetPasswordData {
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
+  /** Check if token valid. */
+  @Get('/check')
+  @Security('auth')
+  public async check(): SimpleApi {
+    return ok()
+  }
+
   /** Sign up. */
   @Post('/signup')
   public async signup(@Body() body: SignupData): SimpleApi {
