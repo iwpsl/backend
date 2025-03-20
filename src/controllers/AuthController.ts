@@ -8,6 +8,12 @@ import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
+import { Body, Controller, Post, Route, Tags } from 'tsoa'
+import { AuthUser } from '../middleware/auth'
+import { EmailService } from "../services/EmailService";
+import { bcryptHash, jwtSign, prisma } from '../utils'
+import { OkResponse } from './common'
+import { ResponseError } from '../middleware/error'
 
 interface SignupData {
   email: string
@@ -53,6 +59,7 @@ export class AuthController extends Controller {
     await prisma.user.create({
       data: {
         email,
+<<<<<<< HEAD
         role,
         password: await bcryptHash(password),
       },
@@ -60,6 +67,21 @@ export class AuthController extends Controller {
 
     return ok()
   }
+=======
+        role: userRole,
+        password: await bcryptHash(password),
+        isVerified: false,
+        verificationToken,
+      },
+    });
+
+     // Send verification email
+     await this.emailService.sendVerificationEmail(email, verificationToken);
+
+     return { message: "User created. Please check your email to verify your account." };
+   }
+
+>>>>>>> 5e0451341d4c07d7b4cae539b026f32ba4ea4f45
 
   /** Login. */
   @Post('/login')
