@@ -11,7 +11,7 @@ export class EmailService {
 
   /** Send verification email */
   public async sendVerificationEmail(email: string, token: string) {
-    const verificationUrl = `${process.env.VERIFICATION_URL}/verify?token=${token}`
+    const verificationUrl = `${process.env.VERIFICATION_URL}/auth/verify?token=${token}`
 
     await this.transporter.sendMail({
       from: '"Your App" <no-reply@yourapp.com>',

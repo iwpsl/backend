@@ -4,7 +4,7 @@ import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
-import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Get, Post, Query, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
 import { EmailService } from '../services/EmailService'
 import { bcryptHash, generateVerificationToken, jwtSign, jwtVerify, prisma, sendMail, verifyToken } from '../utils'
@@ -77,20 +77,22 @@ export class AuthController extends Controller {
     const token = await generateVerificationToken(email, user.tokenVersion)
 
     // Send verification email
-    const verificationUrl = `${process.env.VERIFICATION_URL}/verify?token=${token}`
+    const verificationUrl = `${process.env.VERIFICATION_URL}/auth/verify?token=${token}`
     await sendMail(email, 'Verify Your Email', `Click here to verify your email: ${verificationUrl}`)
 
     return ok({ message: 'Verification email sent' })
   }
 
-  /** Confirm email verification. */
-  @Post('/verification/confirm')
+  /** Confirm email verification via GET request */
+  @Get('/verify')
   @Response(400, 'Invalid or expired token')
   @Response(404, 'User not found')
-  public async confirmVerification(@Body() body: { token: string }) {
-    const { token } = body
-    const decoded = await verifyToken(token)
+  public async verifyEmail(@Query() token: string) {
+    if (!token) {
+      return err(400, 'Missing token')
+    }
 
+    const decoded = await verifyToken(token)
     if (!decoded) {
       return err(400, 'Invalid or expired token')
     }
