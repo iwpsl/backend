@@ -2,18 +2,12 @@ import type { Role } from '@prisma/client'
 import type { Api, SimpleApi } from '../api'
 import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
-import { EmailService } from '../services/EmailService'
 import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
-import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
-import { Body, Controller, Post, Route, Tags } from 'tsoa'
-import { AuthUser } from '../middleware/auth'
-import { EmailService } from "../services/EmailService";
-import { bcryptHash, jwtSign, prisma } from '../utils'
-import { OkResponse } from './common'
-import { ResponseError } from '../middleware/error'
+import { EmailService } from '../services/EmailService'
+import { bcryptHash, generateVerificationToken, jwtSign, jwtVerify, prisma, sendMail, verifyToken } from '../utils'
 
 interface SignupData {
   email: string
@@ -50,7 +44,7 @@ interface ResetPasswordData {
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
-  private emailService = new EmailService();
+  private emailService = new EmailService()
   /** Sign up. */
   @Post('/signup')
   public async signup(@Body() body: SignupData): SimpleApi {
@@ -59,7 +53,6 @@ export class AuthController extends Controller {
     await prisma.user.create({
       data: {
         email,
-<<<<<<< HEAD
         role,
         password: await bcryptHash(password),
       },
@@ -67,21 +60,51 @@ export class AuthController extends Controller {
 
     return ok()
   }
-=======
-        role: userRole,
-        password: await bcryptHash(password),
-        isVerified: false,
-        verificationToken,
-      },
-    });
 
-     // Send verification email
-     await this.emailService.sendVerificationEmail(email, verificationToken);
+  @Post('/verification')
+  public async sendVerification(@Body() body: { email: string }) {
+    const { email } = body
 
-     return { message: "User created. Please check your email to verify your account." };
-   }
+    // Check if the user exists
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      throw new Error('User not found')
+    }
 
->>>>>>> 5e0451341d4c07d7b4cae539b026f32ba4ea4f45
+    // Generate a verification token with tokenVersion
+    const token = generateVerificationToken(email, user.tokenVersion)
+
+    // Send verification email
+    const verificationUrl = `${process.env.VERIFICATION_URL}/verify?token=${token}`
+    await sendMail(email, 'Verify Your Email', `Click here to verify your email: ${verificationUrl}`)
+
+    return { message: 'Verification email sent' }
+  }
+
+  @Post('/verification/confirm')
+  public async confirmVerification(@Body() body: { token: string }) {
+    const { token } = body
+    const decoded = verifyToken(token)
+    if (!decoded) {
+      throw new Error('Invalid or expired token')
+    }
+
+    const { email, tokenVersion } = decoded
+
+    // Fetch user and check tokenVersion
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || user.tokenVersion !== tokenVersion) {
+      throw new Error('Invalid token')
+    }
+
+    // Update user as verified
+    await prisma.user.update({
+      where: { email },
+      data: { is_verified: true },
+    })
+
+    return { message: 'Email verified successfully' }
+  }
 
   /** Login. */
   @Post('/login')

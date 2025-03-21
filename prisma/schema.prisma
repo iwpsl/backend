@@ -18,23 +18,14 @@ enum Role {
 }
 
 model User {
-<<<<<<< HEAD
-  id           Int    @id @default(autoincrement())
-  email        String @unique
-  password     String
-  role         Role   @default(USER)
-  tokenVersion Int    @default(0)
-
-=======
   id       Int    @id @default(autoincrement())
   email    String @unique
   password String
   role     Role   @default(USER)
   is_verified Boolean @default(false)
   verificationToken String? @unique
->>>>>>> 5e04513 (add email service)
   Profile Profile?
-
+  tokenVersion Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
