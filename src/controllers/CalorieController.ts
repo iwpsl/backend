@@ -12,6 +12,7 @@ interface OffBase {
 interface OffProduct {
   code: string
   product_name: string
+  image_url: string
   nutriments: {
     'energy-kcal': number
   }
@@ -36,6 +37,7 @@ interface ProductData {
   code: string
   productName: string
   calorie: number
+  imgUrl: string
 }
 
 interface SearchData {
@@ -61,6 +63,7 @@ export class CalorieController extends Controller {
       code: data.product.code,
       productName: data.product.product_name,
       calorie: data.product.nutriments['energy-kcal'],
+      imgUrl: data.product.image_url,
     })
   }
 
@@ -79,6 +82,7 @@ export class CalorieController extends Controller {
         code: it.code,
         productName: it.product_name,
         calorie: it.nutriments['energy-kcal'],
+        imgUrl: it.image_url,
       })).filter(it => it.calorie),
     })
   }
