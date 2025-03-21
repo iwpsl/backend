@@ -61,32 +61,38 @@ export class AuthController extends Controller {
     return ok()
   }
 
+  /** Send verification email. */
   @Post('/verification')
+  @Response(404, 'User not found')
   public async sendVerification(@Body() body: { email: string }) {
     const { email } = body
 
     // Check if the user exists
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
-      throw new Error('User not found')
+      return err(404, 'User not found')
     }
 
     // Generate a verification token with tokenVersion
-    const token = generateVerificationToken(email, user.tokenVersion)
+    const token = await generateVerificationToken(email, user.tokenVersion)
 
     // Send verification email
     const verificationUrl = `${process.env.VERIFICATION_URL}/verify?token=${token}`
     await sendMail(email, 'Verify Your Email', `Click here to verify your email: ${verificationUrl}`)
 
-    return { message: 'Verification email sent' }
+    return ok({ message: 'Verification email sent' })
   }
 
+  /** Confirm email verification. */
   @Post('/verification/confirm')
+  @Response(400, 'Invalid or expired token')
+  @Response(404, 'User not found')
   public async confirmVerification(@Body() body: { token: string }) {
     const { token } = body
-    const decoded = verifyToken(token)
+    const decoded = await verifyToken(token)
+
     if (!decoded) {
-      throw new Error('Invalid or expired token')
+      return err(400, 'Invalid or expired token')
     }
 
     const { email, tokenVersion } = decoded
@@ -94,7 +100,7 @@ export class AuthController extends Controller {
     // Fetch user and check tokenVersion
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user || user.tokenVersion !== tokenVersion) {
-      throw new Error('Invalid token')
+      return err(404, 'Invalid token')
     }
 
     // Update user as verified
@@ -103,7 +109,7 @@ export class AuthController extends Controller {
       data: { is_verified: true },
     })
 
-    return { message: 'Email verified successfully' }
+    return ok({ message: 'Email verified successfully' })
   }
 
   /** Login. */
