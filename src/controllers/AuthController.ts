@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Query, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
-import { EmailService } from '../services/EmailService'
 import { bcryptHash, generateVerificationToken, jwtSign, jwtVerify, prisma, sendMail, verifyToken } from '../utils'
 
 interface SignupData {
@@ -44,13 +43,19 @@ interface ResetPasswordData {
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
-  private emailService = new EmailService()
+  /** Check if token valid. */
+  @Get('/check')
+  @Security('auth')
+  public async check(): SimpleApi {
+    return ok()
+  }
+
   /** Sign up. */
   @Post('/signup')
-  public async signup(@Body() body: SignupData): SimpleApi {
+  public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email,
         role,
@@ -58,7 +63,12 @@ export class AuthController extends Controller {
       },
     })
 
-    return ok()
+    const token = jwtSign<AuthUser>({
+      id: user.id,
+      tokenVersion: user.tokenVersion,
+    })
+
+    return ok({ token })
   }
 
   /** Send verification email. */
