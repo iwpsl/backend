@@ -16,23 +16,15 @@ export function jwtSign<T extends Record<string, any>>(payload: T, option?: jwt.
 }
 
 export function jwtVerify<T extends Record<string, any>>(token: string) {
-  return jwt.verify(token, process.env.JWT_SECRET as string) as T
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET as string) as T
+  } catch {
+    return undefined
+  }
 }
 
 export function bcryptHash(input: string) {
   return bcrypt.hash(input, process.env.BCRYPT_SALT as string)
-}
-
-export function generateVerificationToken(email: string, tokenVersion: number): string {
-  return jwt.sign({ email, tokenVersion }, process.env.JWT_SECRET as string, { expiresIn: '1h' })
-}
-
-export function verifyToken(token: string): { email: string, tokenVersion: number } | null {
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET as string) as { email: string, tokenVersion: number }
-  } catch {
-    return null
-  }
 }
 
 export const mailer = nodemailer.createTransport({

@@ -2,6 +2,7 @@ import type { Api } from '../api'
 import { Controller, Get, Middlewares, Path, Query, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
 import { roleMiddleware } from '../middleware/role'
+import { verifiedMiddleware } from '../middleware/verified'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -48,7 +49,7 @@ interface SearchData {
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'))
+@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
 export class CalorieController extends Controller {
   /** Get calorie data from product barcode. */
   @Get('/product/code/{code}')

@@ -3,6 +3,7 @@ import type { AuthRequest } from '../middleware/auth'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
 import { roleMiddleware } from '../middleware/role'
+import { verifiedMiddleware } from '../middleware/verified'
 import { prisma } from '../utils'
 
 interface ProfileData {
@@ -17,7 +18,7 @@ interface ProfileData {
 @Route('profile')
 @Tags('Profile')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'))
+@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
 export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
