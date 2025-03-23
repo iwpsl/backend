@@ -14,6 +14,10 @@ interface SignupData {
   role: Role
 }
 
+interface SignupVerifyCodeData {
+  code: string
+}
+
 interface LoginData {
   email: string
   password: string
@@ -27,7 +31,7 @@ interface ResetPasswordSendCodeData {
   email: string
 }
 
-interface VerificationData {
+interface ResetPasswordVerifyCodeData {
   email: string
   code: string
 }
@@ -55,9 +59,7 @@ type VerifyResult<T> = Promise<ApiRes<T> | undefined>
 const tenMinutes = 10 * 60 * 100
 
 // eslint-disable-next-line ts/no-empty-object-type
-async function verifyCode<T = {}>(body: VerificationData, action: VerificationAction): VerifyResult<T> {
-  const { email, code } = body
-
+async function verifyCode<T = {}>(email: string, code: string, action: VerificationAction): VerifyResult<T> {
   const pending = await prisma.pendingVerification.findUnique({ where: { email } })
   if (!pending)
     return err(404, 'Not found')
@@ -77,7 +79,7 @@ async function verifyCode<T = {}>(body: VerificationData, action: VerificationAc
 
 // eslint-disable-next-line ts/no-empty-object-type
 async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T> {
-  const jwt = jwtVerify<VerificationData>(token)
+  const jwt = jwtVerify<ResetPasswordVerifyCodeData>(token)
   if (!jwt)
     return err(401, 'Invalid code')
 
@@ -132,9 +134,12 @@ export class AuthController extends Controller {
   @Post('/signup/send-code')
   @Security('auth')
   public async signupSendCode(@Request() req: AuthRequest): SimpleApi {
-    const { email } = req.user!
+    const { email, isVerified } = req.user!
 
-    const code = genVerificationCode(email, 'SIGNUP')
+    if (isVerified)
+      return err(403, 'Forbidden')
+
+    const code = await genVerificationCode(email, 'SIGNUP')
     await sendMail(email, 'Signup', dedent`
       Use code below to finish signing up.
       Code: ${code}
@@ -149,9 +154,12 @@ export class AuthController extends Controller {
   @Security('auth')
   public async signupVerifyCode(
     @Request() req: AuthRequest,
-    @Body() body: VerificationData,
+    @Body() body: SignupVerifyCodeData,
   ): SimpleApi {
-    const err = await verifyCode(body, 'SIGNUP')
+    const { email } = req.user!
+    const { code } = body
+
+    const err = await verifyCode(email, code, 'SIGNUP')
     if (err)
       return err
 
@@ -216,7 +224,7 @@ export class AuthController extends Controller {
     if (!user)
       return err(404, 'Not found')
 
-    const code = genVerificationCode(email, 'RESET_PASSWORD')
+    const code = await genVerificationCode(email, 'RESET_PASSWORD')
     await sendMail(email, 'Password Reset', dedent`
       There was a request for password reset for your account.
       Code: ${code}
@@ -231,12 +239,14 @@ export class AuthController extends Controller {
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
-  public async resetPasswordVerifyCode(@Body() body: VerificationData): Api<TokenData> {
-    const err = await verifyCode<TokenData>(body, 'RESET_PASSWORD')
+  public async resetPasswordVerifyCode(@Body() body: ResetPasswordVerifyCodeData): Api<TokenData> {
+    const { email, code } = body
+
+    const err = await verifyCode<TokenData>(email, code, 'RESET_PASSWORD')
     if (err)
       return err
 
-    const token = jwtSign<VerificationData>(body, { expiresIn: tenMinutes })
+    const token = jwtSign(body, { expiresIn: tenMinutes })
     return ok({ token })
   }
 
