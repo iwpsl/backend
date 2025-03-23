@@ -17,6 +17,7 @@
     "db:up": "devenv up",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:seed:down": "prisma db seed -- --down",
     "db:serve": "prisma studio"
   },
   "prisma": {
