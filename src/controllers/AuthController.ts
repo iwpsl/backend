@@ -144,6 +144,7 @@ export class AuthController extends Controller {
     return ok()
   }
 
+  /** Verify code sent to email to finish signing up. */
   @Post('/signup/verify-code')
   @Security('auth')
   public async signupVerifyCode(
@@ -192,7 +193,7 @@ export class AuthController extends Controller {
   }
 
   /** Logout. */
-  @Get('/logout')
+  @Post('/logout')
   @Security('auth')
   public async logout(@Request() req: AuthRequest): SimpleApi {
     await prisma.user.update({
