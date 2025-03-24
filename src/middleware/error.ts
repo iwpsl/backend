@@ -1,12 +1,12 @@
 import type { NextFunction, Request, Response } from 'express'
+import { err } from '../api'
 import { isDev } from '../utils'
 
-export function errorMiddleware(err: any, _req: Request, res: Response, next: NextFunction): void {
-  if (err instanceof Error) {
-    res.status(500).json({
-      error: 'Internal server errror',
-      stack: isDev ? err.stack : undefined,
-    })
+export function errorMiddleware(e: any, _req: Request, res: Response, next: NextFunction): void {
+  if (e instanceof Error) {
+    res.json(err(500, 'internal-server-error', {
+      stack: isDev ? e.stack : undefined,
+    }))
   } else {
     next()
   }

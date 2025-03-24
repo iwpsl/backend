@@ -4,7 +4,7 @@ import { err } from '../api'
 
 export function verifiedMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
   if (!req.user!.isVerified)
-    return res.json(err(403, 'Forbidden'))
+    return res.json(err(403, 'unverified'))
 
   next()
 }

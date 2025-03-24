@@ -1,15 +1,22 @@
-export interface ApiRes<T> {
+export type ApiError =
+  | 'not-found'
+  | 'forbidden'
+  | 'unauthorized'
+  | 'internal-server-error'
+  | 'unverified'
+  | 'invalid-credentials'
+  | 'invalid-action'
+  | 'expired-code'
+  | 'invalid-code'
+
+export interface ApiRes<T = {}> {
   success: boolean
   statusCode: number
   data: T | null
-  error: string | null
+  error: ApiError | null
 }
 
-export type Api<T> = Promise<ApiRes<T>>
-
-// eslint-disable-next-line ts/no-empty-object-type
-export type SimpleRes = ApiRes<{}>
-export type SimpleApi = Promise<SimpleRes>
+export type Api<T = {}> = Promise<ApiRes<T>>
 
 export function ok<T>(data?: T): ApiRes<T> {
   return {
@@ -20,7 +27,7 @@ export function ok<T>(data?: T): ApiRes<T> {
   }
 }
 
-export function err<T>(statusCode: number, error: string, data?: T): ApiRes<T> {
+export function err<T>(statusCode: number, error: ApiError, data?: T): ApiRes<T> {
   return {
     success: false,
     statusCode,

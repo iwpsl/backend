@@ -1,5 +1,5 @@
 import type { Role, VerificationAction } from '@prisma/client'
-import type { Api, ApiRes, SimpleApi } from '../api'
+import type { Api, ApiRes } from '../api'
 import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
@@ -58,41 +58,39 @@ async function genVerificationCode(email: string, action: VerificationAction) {
 type VerifyResult<T> = Promise<ApiRes<T> | undefined>
 const tenMinutes = 10 * 60 * 100
 
-// eslint-disable-next-line ts/no-empty-object-type
 async function verifyCode<T = {}>(email: string, code: string, action: VerificationAction): VerifyResult<T> {
   const pending = await prisma.pendingVerification.findUnique({ where: { email } })
   if (!pending)
-    return err(404, 'Not found')
+    return err(404, 'not-found')
 
   if (pending.action !== action)
-    return err(410, 'Invalid action')
+    return err(410, 'invalid-action')
 
   const timeSinceRequested = Date.now() - pending.updatedAt.getTime()
   if (timeSinceRequested > tenMinutes) {
     await prisma.pendingVerification.delete({ where: { email } })
-    return err(410, 'Expired code')
+    return err(410, 'expired-code')
   }
 
   if (!await bcrypt.compare(code, pending.code))
-    return err(401, 'Invalid code')
+    return err(401, 'invalid-code')
 }
 
-// eslint-disable-next-line ts/no-empty-object-type
 async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T> {
   const jwt = jwtVerify<ResetPasswordVerifyCodeData>(token)
   if (!jwt)
-    return err(401, 'Invalid code')
+    return err(401, 'invalid-code')
 
   if (email !== jwt.email)
-    return err(403, 'Forbidden')
+    return err(403, 'forbidden')
 
   const pending = await prisma.pendingVerification.findUnique({ where: { email } })
   if (!pending)
-    return err(404, 'Not found')
+    return err(404, 'not-found')
 
   const validCode = await bcrypt.compare(jwt.code, pending.code)
   if (!validCode)
-    return err(401, 'Invalid code')
+    return err(401, 'invalid-code')
 
   await prisma.pendingVerification.delete({ where: { email } })
 }
@@ -105,7 +103,7 @@ export class AuthController extends Controller {
   /** Check if token valid. */
   @Get('/check')
   @Security('auth')
-  public async check(): SimpleApi {
+  public async check(): Api {
     return ok()
   }
 
@@ -133,11 +131,11 @@ export class AuthController extends Controller {
   /** Send an email containing verification code to finish signing up. */
   @Post('/signup/send-code')
   @Security('auth')
-  public async signupSendCode(@Request() req: AuthRequest): SimpleApi {
+  public async signupSendCode(@Request() req: AuthRequest): Api {
     const { email, isVerified } = req.user!
 
     if (isVerified)
-      return err(403, 'Forbidden')
+      return err(403, 'forbidden')
 
     const code = await genVerificationCode(email, 'SIGNUP')
     await sendMail(email, 'Signup', dedent`
@@ -155,7 +153,7 @@ export class AuthController extends Controller {
   public async signupVerifyCode(
     @Request() req: AuthRequest,
     @Body() body: SignupVerifyCodeData,
-  ): SimpleApi {
+  ): Api {
     const { email } = req.user!
     const { code } = body
 
@@ -179,11 +177,11 @@ export class AuthController extends Controller {
 
     let user = await prisma.user.findUnique({ where: { email } })
     if (!user)
-      return err(401, 'Invalid credentials')
+      return err(401, 'invalid-credentials')
 
     const validPassword = await bcrypt.compare(password, user.password)
     if (!validPassword)
-      return err(401, 'Invalid credentials')
+      return err(401, 'invalid-credentials')
 
     user = await prisma.user.update({
       where: { email },
@@ -203,7 +201,7 @@ export class AuthController extends Controller {
   /** Logout. */
   @Post('/logout')
   @Security('auth')
-  public async logout(@Request() req: AuthRequest): SimpleApi {
+  public async logout(@Request() req: AuthRequest): Api {
     await prisma.user.update({
       where: { id: req.user!.id },
       data: {
@@ -217,12 +215,12 @@ export class AuthController extends Controller {
   /** Send an email containing verification code to reset user password. */
   @Post('/reset-password/send-code')
   @Response(404, 'User not found')
-  public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): SimpleApi {
+  public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): Api {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user)
-      return err(404, 'Not found')
+      return err(404, 'not-found')
 
     const code = await genVerificationCode(email, 'RESET_PASSWORD')
     await sendMail(email, 'Password Reset', dedent`
@@ -255,7 +253,7 @@ export class AuthController extends Controller {
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
-  public async resetPassword(@Body() body: ResetPasswordData): SimpleApi {
+  public async resetPassword(@Body() body: ResetPasswordData): Api {
     const { email, password, token } = body
 
     const err = await verifyToken(token, email)

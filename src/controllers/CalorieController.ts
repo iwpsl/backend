@@ -58,7 +58,7 @@ export class CalorieController extends Controller {
     const data = await res.json() as OffProductData
 
     if (data.status === 0)
-      return err(500, 'Internal server error')
+      return err(500, 'internal-server-error')
 
     return ok({
       code: data.product.code,

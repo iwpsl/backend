@@ -1,4 +1,4 @@
-import type { Api, SimpleApi } from '../api'
+import type { Api } from '../api'
 import type { AuthRequest } from '../middleware/auth'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
@@ -25,7 +25,7 @@ export class ProfileController extends Controller {
   public async getProfile(@Request() req: AuthRequest): Api<ProfileData> {
     const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } })
     if (!profile)
-      return err(404, 'Profile not found')
+      return err(404, 'not-found')
 
     const { id, userId, updatedAt, createdAt, ...rest } = profile
     return ok(rest)
@@ -36,7 +36,7 @@ export class ProfileController extends Controller {
   public async postProfile(
     @Request() req: AuthRequest,
     @Body() body: ProfileData,
-  ): SimpleApi {
+  ): Api {
     const id = req.user!.id
     await prisma.profile.upsert({
       where: { userId: id },
