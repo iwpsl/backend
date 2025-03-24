@@ -4,7 +4,12 @@ import { bcryptHash, prisma } from '../src/utils'
 
 async function createUser(user: Prisma.UserCreateInput, profile?: Omit<Prisma.ProfileCreateInput, 'userId' | 'user'>) {
   user.password = await bcryptHash(user.password)
-  const res = await prisma.user.create({ data: user })
+  const res = await prisma.user.create({
+    data: {
+      isVerified: true,
+      ...user,
+    },
+  })
   if (profile) {
     await prisma.profile.create({
       data: {
