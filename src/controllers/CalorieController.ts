@@ -46,6 +46,12 @@ interface SearchData {
   products: ProductData[]
 }
 
+// interface CalorieJournalData {
+//   datetime: Date
+//   name: string
+//   kcal: number
+// }
+
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')

@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.10.1",
+    "@faker-js/faker": "^9.6.0",
     "@mermaid-js/mermaid-cli": "^11.4.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",

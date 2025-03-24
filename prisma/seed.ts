@@ -1,126 +1,126 @@
-import type { Prisma } from '@prisma/client'
 import process from 'node:process'
+import { faker } from '@faker-js/faker'
 import { bcryptHash, prisma } from '../src/utils'
 
-async function createUser(user: Prisma.UserCreateInput, profile?: Omit<Prisma.ProfileCreateInput, 'userId' | 'user'>) {
-  user.password = await bcryptHash(user.password)
-  const res = await prisma.user.create({
-    data: {
-      isVerified: true,
-      ...user,
-    },
-  })
-  if (profile) {
-    await prisma.profile.create({
+async function up() {
+  faker.seed(420)
+
+  const emails = [
+    'alice@example.com',
+    'deirn@bai.lol',
+    'office.anggoro@gmail.com',
+    'mamanjrebeng22@gmail.com',
+    'segootot69@gmail.com',
+    'lintangharis18@gmail.com',
+  ]
+
+  const password = await bcryptHash('test')
+  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
+
+  for (const email in emails) {
+    const user = await prisma.user.create({
       data: {
-        userId: res.id,
-        ...profile,
+        email,
+        password,
+        isVerified: true,
       },
     })
+
+    await prisma.profile.create({
+      data: {
+        userId: user.id,
+        name: faker.person.fullName(),
+        dateOfBirth: faker.date.birthdate(),
+        gender: faker.person.sex(),
+        heightCm: faker.number.int({ min: 150, max: 180 }),
+        weightKg: faker.number.int({ min: 50, max: 100 }),
+        bloodType: faker.helpers.arrayElement(bloodTypes),
+      },
+    })
+
+    let len = faker.number.int({ min: 5, max: 10 })
+    for (let i = 0; i < len; ++i) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+
+      await prisma.calorieEntry.create({
+        data: {
+          userId: user.id,
+          date,
+          food: faker.food.dish(),
+          calories: faker.number.int({ min: 100, max: 1200 }),
+        },
+      })
+    }
+
+    len = faker.number.int({ min: 5, max: 10 })
+    for (let i = 0; i < len; ++i) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+
+      await prisma.waterEntry.create({
+        data: {
+          userId: user.id,
+          date,
+          amountML: faker.number.int({ min: 500, max: 4000 }),
+        },
+      })
+    }
+
+    len = faker.number.int({ min: 5, max: 10 })
+    for (let i = 0; i < len; ++i) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+
+      await prisma.stepEntry.create({
+        data: {
+          userId: user.id,
+          date,
+          steps: faker.number.int({ min: 1000, max: 20000 }),
+        },
+      })
+    }
+
+    len = faker.number.int({ min: 5, max: 10 })
+    for (let i = 0; i < len; ++i) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+
+      const startTime = faker.date.between({
+        from: new Date(date.setHours(18, 0, 0)),
+        to: new Date(date.setHours(22, 0, 0)),
+      })
+
+      const durationH = faker.number.int({ min: 12, max: 24 })
+      const endTime = new Date(startTime)
+      endTime.setHours(endTime.getHours() + durationH)
+
+      await prisma.fastingEntry.create({
+        data: {
+          userId: user.id,
+          startTime,
+          endTime,
+          durationH,
+        },
+      })
+    }
   }
-}
 
-async function up() {
-  await createUser(
-    {
-      email: 'alice@example.com',
-      password: 'test',
-    },
-    {
-      name: 'Alice Smith',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'O+',
-      gender: 'female',
-      heightCm: 165,
-      weightKg: 60,
-    },
-  )
-
-  await createUser(
-    {
-      email: 'deirn@bai.lol',
-      password: 'test',
-    },
-    {
-      name: 'Homer Simpson',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'AB-',
-      gender: 'male',
-      heightCm: 180,
-      weightKg: 100,
-    },
-  )
-
-  await createUser(
-    {
-      email: 'office.anggoro@gmail.com',
-      password: 'test',
-    },
-    {
-      name: 'Loli Anggoro',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'AB-',
-      gender: 'male',
-      heightCm: 180,
-      weightKg: 100,
-    },
-  )
-
-  await createUser(
-    {
-      email: 'mamanjrebeng22@gmail.com',
-      password: 'test',
-    },
-    {
-      name: 'Maman UwU',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'AB-',
-      gender: 'male',
-      heightCm: 180,
-      weightKg: 100,
-    },
-  )
-
-  await createUser(
-    {
-      email: 'segootot69@gmail.com',
-      password: 'test',
-    },
-    {
-      name: 'Sego Otot',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'AB-',
-      gender: 'male',
-      heightCm: 180,
-      weightKg: 100,
-    },
-  )
-
-  await createUser(
-    {
-      email: 'lintangharis18@gmail.com',
-      password: 'test',
-    },
-    {
-      name: 'Lintang',
-      dateOfBirth: new Date('1999-01-23'),
-      bloodType: 'AB-',
-      gender: 'male',
-      heightCm: 180,
-      weightKg: 100,
-    },
-  )
-
-  await createUser(
-    {
+  await prisma.user.create({
+    data: {
       email: 'admin@example.com',
-      password: 'admin',
+      password: await bcryptHash('admin'),
       role: 'ADMIN',
+      isVerified: true,
     },
-  )
+  })
 }
 
 async function down() {
+  await prisma.calorieEntry.deleteMany()
+  await prisma.waterEntry.deleteMany()
+  await prisma.stepEntry.deleteMany()
+  await prisma.fastingEntry.deleteMany()
   await prisma.profile.deleteMany()
   await prisma.user.deleteMany()
 }
