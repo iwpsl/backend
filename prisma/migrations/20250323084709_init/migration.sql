@@ -1,12 +1,16 @@
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 
+-- CreateEnum
+CREATE TYPE "VerificationAction" AS ENUM ('SIGNUP', 'RESET_PASSWORD');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "Role" NOT NULL DEFAULT 'USER',
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "tokenVersion" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -31,14 +35,15 @@ CREATE TABLE "Profile" (
 );
 
 -- CreateTable
-CREATE TABLE "PendingPasswordReset" (
+CREATE TABLE "PendingVerification" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "code" TEXT NOT NULL,
+    "action" "VerificationAction" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "PendingPasswordReset_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "PendingVerification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -48,7 +53,7 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PendingPasswordReset_email_key" ON "PendingPasswordReset"("email");
+CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("email");
 
 -- AddForeignKey
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

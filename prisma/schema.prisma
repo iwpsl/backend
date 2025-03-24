@@ -4,7 +4,7 @@ generator client {
 
 generator erd {
   provider = "prisma-erd-generator"
-  output = "../docs/erd.svg"
+  output   = "../docs/erd.svg"
 }
 
 datasource db {
@@ -18,11 +18,12 @@ enum Role {
 }
 
 model User {
-  id           Int    @id @default(autoincrement())
-  email        String @unique
+  id           Int     @id @default(autoincrement())
+  email        String  @unique
   password     String
-  role         Role   @default(USER)
-  tokenVersion Int    @default(0)
+  role         Role    @default(USER)
+  isVerified   Boolean @default(false)
+  tokenVersion Int     @default(0)
 
   Profile Profile?
 
@@ -46,10 +47,16 @@ model Profile {
   updatedAt DateTime @updatedAt
 }
 
-model PendingPasswordReset {
-  id    Int    @id @default(autoincrement())
-  email String @unique
-  code  String
+enum VerificationAction {
+  SIGNUP
+  RESET_PASSWORD
+}
+
+model PendingVerification {
+  id     Int                @id @default(autoincrement())
+  email  String             @unique
+  code   String
+  action VerificationAction
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -22,8 +22,10 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
 
     try {
       const jwtUser = jwtVerify<AuthUser>(token)
-      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
+      if (!jwtUser)
+        throw new AuthError()
 
+      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
       if (!user)
         throw new AuthError()
       if (jwtUser.tokenVersion !== user.tokenVersion)

@@ -1,9 +1,11 @@
 import process from 'node:process'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import dotenv from 'dotenv'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
+dotenv.config()
 export const isDev = process.env.ENVIRONMENT === 'dev'
 export const port = process.env.PORT || '3000'
 
@@ -14,7 +16,11 @@ export function jwtSign<T extends Record<string, any>>(payload: T, option?: jwt.
 }
 
 export function jwtVerify<T extends Record<string, any>>(token: string) {
-  return jwt.verify(token, process.env.JWT_SECRET as string) as T
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET as string) as T
+  } catch {
+    return undefined
+  }
 }
 
 export function bcryptHash(input: string) {
