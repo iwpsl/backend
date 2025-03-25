@@ -39,7 +39,10 @@ CREATE TABLE "CalorieEntry" (
     "id" SERIAL NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "food" TEXT NOT NULL,
-    "calories" INTEGER NOT NULL,
+    "energyKcal" INTEGER NOT NULL,
+    "proteinGr" INTEGER NOT NULL,
+    "carbohydrateGr" INTEGER NOT NULL,
+    "fatGr" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
 
     CONSTRAINT "CalorieEntry_pkey" PRIMARY KEY ("id")
@@ -49,7 +52,7 @@ CREATE TABLE "CalorieEntry" (
 CREATE TABLE "WaterEntry" (
     "id" SERIAL NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "amountML" INTEGER NOT NULL,
+    "amountMl" INTEGER NOT NULL,
     "userId" INTEGER NOT NULL,
 
     CONSTRAINT "WaterEntry_pkey" PRIMARY KEY ("id")

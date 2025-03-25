@@ -42,6 +42,6 @@ export function authErrorMiddleware(e: any, _req: Request, res: Response, next: 
   if (e instanceof AuthError) {
     res.json(err(401, 'unauthorized'))
   } else {
-    next()
+    next(e)
   }
 }

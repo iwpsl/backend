@@ -17,7 +17,7 @@ async function up() {
   const password = await bcryptHash('test')
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
 
-  for (const email in emails) {
+  for (const email of emails) {
     const user = await prisma.user.create({
       data: {
         email,
@@ -38,7 +38,7 @@ async function up() {
       },
     })
 
-    let len = faker.number.int({ min: 5, max: 10 })
+    let len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
       const date = new Date()
       date.setDate(date.getDate() - i)
@@ -48,12 +48,15 @@ async function up() {
           userId: user.id,
           date,
           food: faker.food.dish(),
-          calories: faker.number.int({ min: 100, max: 1200 }),
+          energyKcal: faker.number.int({ min: 100, max: 1200 }),
+          carbohydrateGr: faker.number.int({ min: 10, max: 100 }),
+          proteinGr: faker.number.int({ min: 5, max: 50 }),
+          fatGr: faker.number.int({ min: 5, max: 60 }),
         },
       })
     }
 
-    len = faker.number.int({ min: 5, max: 10 })
+    len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
       const date = new Date()
       date.setDate(date.getDate() - i)
@@ -62,12 +65,12 @@ async function up() {
         data: {
           userId: user.id,
           date,
-          amountML: faker.number.int({ min: 500, max: 4000 }),
+          amountMl: faker.number.int({ min: 500, max: 4000 }),
         },
       })
     }
 
-    len = faker.number.int({ min: 5, max: 10 })
+    len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
       const date = new Date()
       date.setDate(date.getDate() - i)
@@ -81,7 +84,7 @@ async function up() {
       })
     }
 
-    len = faker.number.int({ min: 5, max: 10 })
+    len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
       const date = new Date()
       date.setDate(date.getDate() - i)

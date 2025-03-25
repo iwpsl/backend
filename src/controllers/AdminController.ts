@@ -25,11 +25,11 @@ export class AdminController extends Controller {
     const r = await prisma.user.findMany({
       where: {
         role: { not: 'ADMIN' },
-        Profile: { isNot: null },
+        profile: { isNot: null },
       },
       select: {
         email: true,
-        Profile: {
+        profile: {
           select: {
             name: true,
             dateOfBirth: true,
@@ -42,6 +42,6 @@ export class AdminController extends Controller {
       },
     })
 
-    return ok(r.map(({ Profile, ...user }) => ({ ...user, ...Profile! })))
+    return ok(r.map(({ profile, ...user }) => ({ ...user, ...profile! })))
   }
 }
