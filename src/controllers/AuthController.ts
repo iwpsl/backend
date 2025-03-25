@@ -1,13 +1,13 @@
 import type { Role, VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api'
-
 import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
-import { bcryptHash, GOOGLE_OAUTH_CLIENT_ID, jwtSign, jwtVerify, oauth, prisma, sendMail } from '../utils'
+import { firebaseAuth } from '../firebase'
+import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
 
 interface SignupData {
   email: string
@@ -28,7 +28,7 @@ interface TokenData {
   token: string
 }
 
-interface LoginGoogleBody {
+interface LoginFirebaseData {
   idToken: string
 }
 
@@ -213,34 +213,30 @@ export class AuthController extends Controller {
     return ok({ token })
   }
 
-  /** Login using Google OAuth. */
-  @Post('/login/google')
-  public async loginGoogle(@Body() body: LoginGoogleBody): Api<TokenData> {
+  /** Login using Firebase Auth. */
+  @Post('/login/firebase')
+  public async loginFirebase(@Body() body: LoginFirebaseData): Api<TokenData> {
     const { idToken } = body
 
-    const ticket = await oauth.verifyIdToken({
-      idToken,
-      audience: GOOGLE_OAUTH_CLIENT_ID,
-    })
-
-    const payload = ticket.getPayload()
-    if (!payload)
-      return err(404, 'not-found')
-
-    const { email } = payload
+    const { email } = await firebaseAuth.verifyIdToken(idToken)
     if (!email)
       return err(401, 'invalid-credentials')
 
     const user = await prisma.user.upsert({
       where: { email },
       update: {},
-      create: { email, authType: 'GOOGLE' },
+      create: {
+        email,
+        authType: 'FIREBASE',
+        isVerified: true,
+      },
     })
 
     const token = jwtSign<AuthUser>({
       id: user.id,
       tokenVersion: user.tokenVersion,
     })
+
     return ok({ token })
   }
 

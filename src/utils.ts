@@ -2,7 +2,6 @@ import process from 'node:process'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import dotenv from 'dotenv'
-import { OAuth2Client } from 'google-auth-library'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
 
@@ -44,6 +43,3 @@ export async function sendMail(to: string, subject: string, text: string) {
     text,
   })
 }
-
-export const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID
-export const oauth = new OAuth2Client(GOOGLE_OAUTH_CLIENT_ID)

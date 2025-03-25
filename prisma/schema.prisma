@@ -19,7 +19,7 @@ enum Role {
 
 enum AuthType {
   EMAIL
-  GOOGLE
+  FIREBASE
 }
 
 model User {
