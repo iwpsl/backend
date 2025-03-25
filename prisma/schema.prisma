@@ -17,10 +17,16 @@ enum Role {
   ADMIN
 }
 
+enum AuthType {
+  EMAIL
+  FIREBASE
+}
+
 model User {
   id           Int     @id @default(autoincrement())
   email        String  @unique
-  password     String
+  authType     AuthType
+  password     String?
   role         Role    @default(USER)
   isVerified   Boolean @default(false)
   tokenVersion Int     @default(0)

@@ -1,12 +1,12 @@
 import type { Role, VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api'
-
 import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
+import { firebaseAuth } from '../firebase'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
 
 interface SignupData {
@@ -26,6 +26,10 @@ interface LoginData {
 
 interface TokenData {
   token: string
+}
+
+interface LoginFirebaseData {
+  idToken: string
 }
 
 interface ResetPasswordSendCodeData {
@@ -124,6 +128,7 @@ export class AuthController extends Controller {
         email,
         role,
         password: await bcryptHash(password),
+        authType: 'EMAIL',
       },
     })
     const token = jwtSign<AuthUser>({
@@ -178,14 +183,18 @@ export class AuthController extends Controller {
 
   /** Login. */
   @Post('/login')
+  @Response(401, 'Invalid username or password')
+  @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
   public async login(@Body() body: LoginData): Api<TokenData> {
     const { email, password } = body
 
     let user = await prisma.user.findUnique({ where: { email } })
     if (!user)
       return err(401, 'invalid-credentials')
+    if (user.authType !== 'EMAIL')
+      return err(403, 'forbidden')
 
-    const validPassword = await bcrypt.compare(password, user.password)
+    const validPassword = await bcrypt.compare(password, user.password!)
     if (!validPassword)
       return err(401, 'invalid-credentials')
 
@@ -193,6 +202,33 @@ export class AuthController extends Controller {
       where: { email },
       data: {
         tokenVersion: { increment: 1 },
+      },
+    })
+
+    const token = jwtSign<AuthUser>({
+      id: user.id,
+      tokenVersion: user.tokenVersion,
+    })
+
+    return ok({ token })
+  }
+
+  /** Login using Firebase Auth. */
+  @Post('/login/firebase')
+  public async loginFirebase(@Body() body: LoginFirebaseData): Api<TokenData> {
+    const { idToken } = body
+
+    const { email } = await firebaseAuth.verifyIdToken(idToken)
+    if (!email)
+      return err(401, 'invalid-credentials')
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        authType: 'FIREBASE',
+        isVerified: true,
       },
     })
 
@@ -221,12 +257,15 @@ export class AuthController extends Controller {
   /** Send an email containing verification code to reset user password. */
   @Post('/reset-password/send-code')
   @Response(404, 'User not found')
+  @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
   public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): Api {
     const { email } = body
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user)
       return err(404, 'not-found')
+    if (user.authType !== 'EMAIL')
+      return err(403, 'forbidden')
 
     const code = await genVerificationCode(email, 'RESET_PASSWORD')
     await sendMail(email, 'Password Reset', dedent`
