@@ -1,5 +1,6 @@
 import type { Role, VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api'
+
 import type { AuthRequest, AuthUser } from '../middleware/auth'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
@@ -112,6 +113,12 @@ export class AuthController extends Controller {
   public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
 
+    // Email regex validation
+    const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      throw new Error('Invalid email format')
+    }
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -119,7 +126,6 @@ export class AuthController extends Controller {
         password: await bcryptHash(password),
       },
     })
-
     const token = jwtSign<AuthUser>({
       id: user.id,
       tokenVersion: user.tokenVersion,
