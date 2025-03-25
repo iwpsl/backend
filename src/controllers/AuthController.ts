@@ -225,11 +225,11 @@ export class AuthController extends Controller {
 
     const payload = ticket.getPayload()
     if (!payload)
-      return err(404, 'Not found')
+      return err(404, 'not-found')
 
     const { email } = payload
     if (!email)
-      return err(401, 'Invalid credentials')
+      return err(401, 'invalid-credentials')
 
     const user = await prisma.user.upsert({
       where: { email },

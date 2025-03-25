@@ -115,6 +115,7 @@ async function up() {
       email: 'admin@example.com',
       password: await bcryptHash('admin'),
       role: 'ADMIN',
+      authType: 'EMAIL',
       isVerified: true,
     },
   })
