@@ -7,12 +7,18 @@
   "keywords": [],
   "main": "dist/index.js",
   "scripts": {
-    "genroutes": "tsoa routes && tsoa spec",
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "gen:routes": "tsoa routes && tsoa spec",
+    "gen:orm": "prisma generate",
+    "db:up": "devenv up",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:seed:down": "prisma db seed -- --down",
+    "db:serve": "prisma studio"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -35,6 +41,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.10.1",
+    "@faker-js/faker": "^9.6.0",
     "@mermaid-js/mermaid-cli": "^11.4.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",

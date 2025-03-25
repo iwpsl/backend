@@ -22,8 +22,10 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
 
     try {
       const jwtUser = jwtVerify<AuthUser>(token)
-      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
+      if (!jwtUser)
+        throw new AuthError()
 
+      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
       if (!user)
         throw new AuthError()
       if (jwtUser.tokenVersion !== user.tokenVersion)
@@ -38,8 +40,8 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
 
 export function authErrorMiddleware(e: any, _req: Request, res: Response, next: NextFunction): void {
   if (e instanceof AuthError) {
-    res.json(err(401, 'Unauthorized'))
+    res.json(err(401, 'unauthorized'))
   } else {
-    next()
+    next(e)
   }
 }

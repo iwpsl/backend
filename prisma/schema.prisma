@@ -4,7 +4,7 @@ generator client {
 
 generator erd {
   provider = "prisma-erd-generator"
-  output = "../docs/erd.svg"
+  output   = "../docs/erd.svg"
 }
 
 datasource db {
@@ -23,14 +23,19 @@ enum AuthType {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int     @id @default(autoincrement())
+  email        String  @unique
   authType     AuthType
   password     String?
-  role         Role     @default(USER)
-  tokenVersion Int      @default(0)
+  role         Role    @default(USER)
+  isVerified   Boolean @default(false)
+  tokenVersion Int     @default(0)
 
-  Profile Profile?
+  profile Profile?
+  calorie CalorieEntry[]
+  water   WaterEntry[]
+  step    StepEntry[]
+  fasting FastingEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -52,10 +57,63 @@ model Profile {
   updatedAt DateTime @updatedAt
 }
 
-model PendingPasswordReset {
-  id    Int    @id @default(autoincrement())
-  email String @unique
-  code  String
+model CalorieEntry {
+  id             Int      @id @default(autoincrement())
+  date           DateTime @default(now())
+  food           String
+  energyKcal     Int
+  proteinGr      Int
+  carbohydrateGr Int
+  fatGr          Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, food])
+}
+
+model WaterEntry {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @default(now())
+  amountMl Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model StepEntry {
+  id    Int      @id @default(autoincrement())
+  date  DateTime @default(now())
+  steps Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model FastingEntry {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  durationH Float
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum VerificationAction {
+  SIGNUP
+  RESET_PASSWORD
+}
+
+model PendingVerification {
+  id     Int                @id @default(autoincrement())
+  email  String             @unique
+  code   String
+  action VerificationAction
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
