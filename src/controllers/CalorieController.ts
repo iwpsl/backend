@@ -69,7 +69,7 @@ interface CalorieJournalResultData extends CalorieJournalData {
 export class CalorieController extends Controller {
   /** Get calorie data from product barcode. */
   @Get('/product/code/{code}')
-  public async productByCode(@Path() code: string): Api<ProductData> {
+  public async getProductByCode(@Path() code: string): Api<ProductData> {
     const res = await fetch(`${apiUrl}/product/${code}`)
     const data = await res.json() as OffProductData
 
@@ -86,7 +86,7 @@ export class CalorieController extends Controller {
 
   /** Search for product. */
   @Get('/product/search')
-  public async productSearch(@Query() q: string): Api<SearchData> {
+  public async searchProduct(@Query() q: string): Api<SearchData> {
     const url = getSearchUrl(q)
     console.log(url)
 
@@ -106,7 +106,7 @@ export class CalorieController extends Controller {
 
   /** Create or update a journal entry. */
   @Post('/journal')
-  public async journalAdd(
+  public async postCalorieJournal(
     @Request() req: AuthRequest,
     @Body() body: CalorieJournalData,
   ): Api {
@@ -135,7 +135,7 @@ export class CalorieController extends Controller {
 
   /** Get a list of journal entries. */
   @Get('/journal')
-  public async journalGetMany(
+  public async getCalorieJournals(
     @Request() req: AuthRequest,
     @Query() after?: number,
   ): Api<CalorieJournalResultData[]> {
@@ -161,7 +161,7 @@ export class CalorieController extends Controller {
 
   /** Get detail of a journal entry. */
   @Get('/journal/{id}')
-  public async journalById(
+  public async getCalorieJournalById(
     @Request() req: AuthRequest,
     @Path() id: number,
   ): Api<CalorieJournalResultData> {

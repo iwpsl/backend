@@ -6,13 +6,13 @@ import { roleMiddleware } from '../middleware/role'
 import { verifiedMiddleware } from '../middleware/verified'
 import { prisma } from '../utils'
 
-interface WaterEntryData {
+interface WaterJournalData {
   id?: number
   date: Date
   amountMl: number
 }
 
-interface WaterEntryResultData extends WaterEntryData {
+interface WaterJournalResultData extends WaterJournalData {
   id: number
 }
 
@@ -23,9 +23,9 @@ interface WaterEntryResultData extends WaterEntryData {
 export class WaterController extends Controller {
   /** Create or update a water intake entry. */
   @Post('/journal')
-  public async journalAdd(
+  public async postWaterJournal(
     @Request() req: AuthRequest,
-    @Body() body: WaterEntryData,
+    @Body() body: WaterJournalData,
   ): Api {
     const userId = req.user!.id
     const { id, ...data } = body
@@ -52,10 +52,10 @@ export class WaterController extends Controller {
 
   /** Get a list of water intake entries. */
   @Get('/journal')
-  public async journalGetMany(
+  public async getWaterJournals(
     @Request() req: AuthRequest,
     @Query() after?: number,
-  ): Api<WaterEntryResultData[]> {
+  ): Api<WaterJournalResultData[]> {
     const userId = req.user!.id
 
     const res = after
@@ -75,10 +75,10 @@ export class WaterController extends Controller {
 
   /** Get detail of a water intake entry. */
   @Get('/journal/{id}')
-  public async journalById(
+  public async getWaterJournalById(
     @Request() req: AuthRequest,
     @Path() id: number,
-  ): Api<WaterEntryResultData> {
+  ): Api<WaterJournalResultData> {
     const res = await prisma.waterEntry.findUnique({
       where: {
         id,
