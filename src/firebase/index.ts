@@ -1,8 +1,8 @@
-import { auth, credential, initializeApp } from 'firebase-admin'
+import admin from 'firebase-admin'
 import * as serviceAccount from './serviceAccountKey.json'
 
-initializeApp({
-  credential: credential.cert(serviceAccount as any),
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount as any),
 })
 
-export const firebaseAuth = auth()
+export const firebaseAuth = admin.auth()
