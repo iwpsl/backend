@@ -25,7 +25,11 @@ model User {
   isVerified   Boolean @default(false)
   tokenVersion Int     @default(0)
 
-  Profile Profile?
+  profile Profile?
+  calorie CalorieEntry[]
+  water   WaterEntry[]
+  step    StepEntry[]
+  fasting FastingEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -45,6 +49,53 @@ model Profile {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CalorieEntry {
+  id             Int      @id @default(autoincrement())
+  date           DateTime @default(now())
+  food           String
+  energyKcal     Int
+  proteinGr      Int
+  carbohydrateGr Int
+  fatGr          Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, food])
+}
+
+model WaterEntry {
+  id       Int      @id @default(autoincrement())
+  date     DateTime @default(now())
+  amountMl Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model StepEntry {
+  id    Int      @id @default(autoincrement())
+  date  DateTime @default(now())
+  steps Int
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model FastingEntry {
+  id        Int      @id @default(autoincrement())
+  startTime DateTime
+  endTime   DateTime
+  durationH Float
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum VerificationAction {

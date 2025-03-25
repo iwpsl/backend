@@ -1,8 +1,10 @@
 import type { Api } from '../api'
-import { Controller, Get, Middlewares, Path, Query, Route, Security, Tags } from 'tsoa'
+import type { AuthRequest } from '../middleware/auth'
+import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api'
 import { roleMiddleware } from '../middleware/role'
 import { verifiedMiddleware } from '../middleware/verified'
+import { prisma } from '../utils'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -46,6 +48,20 @@ interface SearchData {
   products: ProductData[]
 }
 
+interface CalorieJournalData {
+  id?: number
+  date: Date
+  food: string
+  energyKcal: number
+  proteinGr: number
+  carbohydrateGr: number
+  fatGr: number
+}
+
+interface CalorieJournalResultData extends CalorieJournalData {
+  id: number
+}
+
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')
@@ -86,5 +102,79 @@ export class CalorieController extends Controller {
         imgUrl: it.image_url,
       })).filter(it => it.calorie),
     })
+  }
+
+  /** Create or update a journal entry. */
+  @Post('/journal')
+  public async journalAdd(
+    @Request() req: AuthRequest,
+    @Body() body: CalorieJournalData,
+  ): Api {
+    const userId = req.user!.id
+    const { id, ...data } = body
+
+    if (body.id) {
+      await prisma.calorieEntry.update({
+        where: { id },
+        data: {
+          userId,
+          ...data,
+        },
+      })
+    } else {
+      await prisma.calorieEntry.create({
+        data: {
+          userId,
+          ...data,
+        },
+      })
+    }
+
+    return ok()
+  }
+
+  /** Get a list of journal entries. */
+  @Get('/journal')
+  public async journalGetMany(
+    @Request() req: AuthRequest,
+    @Query() after?: number,
+  ): Api<CalorieJournalResultData[]> {
+    const userId = req.user!.id
+
+    const res = after
+      ? await prisma.calorieEntry.findMany({
+        take: 10,
+        skip: 1,
+        cursor: { id: after },
+        where: { userId },
+      })
+      : await prisma.calorieEntry.findMany({
+        take: 10,
+        where: { userId },
+      })
+
+    return ok(res.map((it) => {
+      const { userId, ...rest } = it
+      return rest
+    }))
+  }
+
+  /** Get detail of a journal entry. */
+  @Get('/journal/{id}')
+  public async journalById(
+    @Request() req: AuthRequest,
+    @Path() id: number,
+  ): Api<CalorieJournalResultData> {
+    const res = await prisma.calorieEntry.findUnique({
+      where: {
+        id,
+        userId: req.user!.id,
+      },
+    })
+
+    if (!res)
+      return err(404, 'not-found')
+
+    return ok(res)
   }
 }
