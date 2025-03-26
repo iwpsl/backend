@@ -48,4 +48,15 @@
       '';
     };
   };
+
+  processes = {
+    prisma-studio.exec = ''
+      prisma studio
+    '';
+
+    express-prod.exec = ''
+      pnpm build
+      pnpm start
+    '';
+  };
 }
