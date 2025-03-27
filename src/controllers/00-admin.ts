@@ -1,8 +1,8 @@
-import type { Api } from '../api'
+import type { Api } from '../api.js'
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
-import { ok } from '../api'
-import { roleMiddleware } from '../middleware/role'
-import { prisma } from '../utils'
+import { ok } from '../api.js'
+import { roleMiddleware } from '../middleware/role.js'
+import { prisma } from '../utils.js'
 
 type AdminProfileData = Array<{
   email: string

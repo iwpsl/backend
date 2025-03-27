@@ -1,13 +1,13 @@
 import type { Role, VerificationAction } from '@prisma/client'
-import type { Api, ApiRes } from '../api'
-import type { AuthRequest, AuthUser } from '../middleware/auth'
+import type { Api, ApiRes } from '../api.js'
+import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
-import { err, ok } from '../api'
-import { firebaseAuth } from '../firebase'
-import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils'
+import { err, ok } from '../api.js'
+import { firebaseAuth } from '../firebase/index.js'
+import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils.js'
 
 interface SignupData {
   email: string

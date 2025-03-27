@@ -1,37 +1,37 @@
-import type { Api } from '../api'
-import type { AuthRequest } from '../middleware/auth'
+import type { Api } from '../api.js'
+import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
-import { err, ok } from '../api'
-import { roleMiddleware } from '../middleware/role'
-import { verifiedMiddleware } from '../middleware/verified'
-import { prisma } from '../utils'
+import { err, ok } from '../api.js'
+import { roleMiddleware } from '../middleware/role.js'
+import { verifiedMiddleware } from '../middleware/verified.js'
+import { prisma } from '../utils.js'
 
-interface WaterJournalData {
+interface StepJournalData {
   id?: number
   date: Date
-  amountMl: number
+  steps: number
 }
 
-interface WaterJournalResultData extends WaterJournalData {
+interface StepJournalResultData extends StepJournalData {
   id: number
 }
 
-@Route('water')
-@Tags('Water')
+@Route('step')
+@Tags('Step')
 @Security('auth')
 @Middlewares(roleMiddleware('USER'), verifiedMiddleware)
-export class WaterController extends Controller {
-  /** Create or update a water intake entry. */
+export class StepController extends Controller {
+  /** Create or update a journal entry. */
   @Post('/journal')
-  public async postWaterJournal(
+  public async postStepJournal(
     @Request() req: AuthRequest,
-    @Body() body: WaterJournalData,
+    @Body() body: StepJournalData,
   ): Api {
     const userId = req.user!.id
     const { id, ...data } = body
 
     if (body.id) {
-      await prisma.waterEntry.update({
+      await prisma.stepEntry.update({
         where: { id },
         data: {
           userId,
@@ -39,7 +39,7 @@ export class WaterController extends Controller {
         },
       })
     } else {
-      await prisma.waterEntry.create({
+      await prisma.stepEntry.create({
         data: {
           userId,
           ...data,
@@ -50,36 +50,39 @@ export class WaterController extends Controller {
     return ok()
   }
 
-  /** Get a list of water intake entries. */
+  /** Get a list of journal entries. */
   @Get('/journal')
-  public async getWaterJournals(
+  public async getStepJournals(
     @Request() req: AuthRequest,
     @Query() after?: number,
-  ): Api<WaterJournalResultData[]> {
+  ): Api<StepJournalResultData[]> {
     const userId = req.user!.id
 
     const res = after
-      ? await prisma.waterEntry.findMany({
+      ? await prisma.stepEntry.findMany({
         take: 10,
         skip: 1,
         cursor: { id: after },
         where: { userId },
       })
-      : await prisma.waterEntry.findMany({
+      : await prisma.stepEntry.findMany({
         take: 10,
         where: { userId },
       })
 
-    return ok(res.map(({ userId, ...rest }) => rest))
+    return ok(res.map((it) => {
+      const { userId, ...rest } = it
+      return rest
+    }))
   }
 
-  /** Get detail of a water intake entry. */
+  /** Get detail of a journal entry. */
   @Get('/journal/{id}')
-  public async getWaterJournalById(
+  public async getStepJournalById(
     @Request() req: AuthRequest,
     @Path() id: number,
-  ): Api<WaterJournalResultData> {
-    const res = await prisma.waterEntry.findUnique({
+  ): Api<StepJournalResultData> {
+    const res = await prisma.stepEntry.findUnique({
       where: {
         id,
         userId: req.user!.id,

@@ -1,15 +1,19 @@
 {
   "name": "backend",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
   "author": "",
   "license": "ARR",
   "keywords": [],
-  "main": "dist/src/index.js",
+  "exports": "./dist/src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/index.js",
-    "dev": "nodemon src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "gen:routes": "tsoa routes && tsoa spec",
@@ -21,10 +25,11 @@
     "db:serve": "prisma studio"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
+    "@scalar/express-api-reference": "^0.6.3",
     "@tsoa/runtime": "^6.6.0",
     "@types/swagger-ui-express": "^4.1.8",
     "bcryptjs": "^3.0.2",
@@ -49,12 +54,10 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.9",
     "@types/nodemailer": "^6.4.17",
-    "concurrently": "^9.1.2",
     "eslint": "^9.22.0",
-    "nodemon": "^3.1.9",
     "prisma": "5.22.0",
     "prisma-erd-generator": "^2.0.4",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }

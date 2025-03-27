@@ -1,7 +1,7 @@
 import type { User } from '@prisma/client'
 import type { NextFunction, Request, Response } from 'express'
-import { err } from '../api'
-import { jwtVerify, prisma } from '../utils'
+import { err } from '../api.js'
+import { jwtVerify, prisma } from '../utils.js'
 
 export interface AuthRequest extends Request {
   user?: User

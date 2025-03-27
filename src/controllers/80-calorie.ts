@@ -1,10 +1,10 @@
-import type { Api } from '../api'
-import type { AuthRequest } from '../middleware/auth'
+import type { Api } from '../api.js'
+import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
-import { err, ok } from '../api'
-import { roleMiddleware } from '../middleware/role'
-import { verifiedMiddleware } from '../middleware/verified'
-import { prisma } from '../utils'
+import { err, ok } from '../api.js'
+import { roleMiddleware } from '../middleware/role.js'
+import { verifiedMiddleware } from '../middleware/verified.js'
+import { prisma } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 

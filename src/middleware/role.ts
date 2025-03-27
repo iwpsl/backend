@@ -1,7 +1,7 @@
 import type { Role } from '@prisma/client'
 import type { NextFunction, Response } from 'express'
-import type { AuthRequest } from './auth'
-import { err } from '../api'
+import type { AuthRequest } from './auth.js'
+import { err } from '../api.js'
 
 export function roleMiddleware(requiredRole: Role) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {

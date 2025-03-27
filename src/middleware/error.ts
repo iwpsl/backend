@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
-import { err } from '../api'
-import { isDev } from '../utils'
+import { err } from '../api.js'
+import { isDev } from '../utils.js'
 
 export function errorMiddleware(e: any, _req: Request, res: Response, next: NextFunction): void {
   console.log(e)

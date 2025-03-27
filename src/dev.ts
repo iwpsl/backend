@@ -1,22 +1,23 @@
 import type { Express } from 'express'
 import path from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+import { apiReference } from '@scalar/express-api-reference'
 import express from 'express'
 import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware'
-import swaggerUi from 'swagger-ui-express'
-import * as swaggerJson from './routes/swagger.json'
 
 export function setupDevRoutes(app: Express) {
   app.use('/docs', express.static('docs'))
+
+  const __filename = fileURLToPath(import.meta.url)
+  const __dirname = path.dirname(__filename)
 
   app.get('/docs/api.json', (_, res) => {
     res.sendFile(path.join(__dirname, 'routes/swagger.json'))
   })
 
-  app.use('/docs/api', swaggerUi.serve, swaggerUi.setup(swaggerJson, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
+  app.use('/docs/api', apiReference({
+    url: '/docs/api.json',
   }))
 
   app.all('*', createProxyMiddleware({

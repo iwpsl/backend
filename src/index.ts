@@ -1,12 +1,12 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
 import express from 'express'
-import { setupDevRoutes } from './dev'
-import { authErrorMiddleware } from './middleware/auth'
-import { dataMiddleware } from './middleware/data'
-import { errorMiddleware } from './middleware/error'
-import { RegisterRoutes } from './routes/routes'
-import { isDev, port } from './utils'
+import { setupDevRoutes } from './dev.js'
+import { authErrorMiddleware } from './middleware/auth.js'
+import { dataMiddleware } from './middleware/data.js'
+import { errorMiddleware } from './middleware/error.js'
+import { RegisterRoutes } from './routes/routes.js'
+import { isDev, port } from './utils.js'
 
 dotenv.config()
 

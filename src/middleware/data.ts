@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
-import type { ApiRes } from '../api'
+import type { ApiRes } from '../api.js'
 
 export function dataMiddleware(_req: Request, res: Response, next: NextFunction) {
   const ogJson = res.json

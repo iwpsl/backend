@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { bcryptHash, prisma } from '../src/utils'
+import { bcryptHash, prisma } from '../src/utils.js'
 
 async function up() {
   faker.seed(420)

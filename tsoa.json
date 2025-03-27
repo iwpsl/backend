@@ -14,6 +14,7 @@
   },
   "routes": {
     "authenticationModule": "src/middleware/auth.ts",
-    "routesDir": "src/routes"
+    "routesDir": "src/routes",
+    "esm": true
   }
 }
