@@ -3,7 +3,7 @@ import type { NextFunction, Response } from 'express'
 import type { AuthRequest } from './auth.js'
 import { err } from '../api.js'
 
-export function role(requiredRole: Role) {
+export function roleMiddleware(requiredRole: Role) {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     const role = req.user?.role
     if (role !== requiredRole)

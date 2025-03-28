@@ -38,7 +38,6 @@
     postgres = {
       enable = true;
       listen_addresses = "127.0.0.1";
-      port = 5433;
       initialDatabases = [{
         name = "database";
         user = "database";

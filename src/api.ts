@@ -1,42 +1,20 @@
-export interface ApiStatus {
-  200: ['ok']
-  400: ['validation-error']
-  401: ['unauthorized', 'invalid-credentials', 'invalid-code']
-  403: ['forbidden', 'unverified']
-  404: ['not-found']
-  410: ['invalid-action', 'expired-code']
-  500: ['internal-server-error']
-}
-
-export type ApiStatusCode = keyof ApiStatus
-export type ApiErrorCode = ApiStatus[keyof ApiStatus][number]
-
-export interface ValidationFieldError {
-  field: string
-  message: string
-}
-
-export interface ApiError {
-  code: ApiErrorCode
-  message?: string
-  fields?: ValidationFieldError[]
-  details?: any
-}
+export type ApiError =
+  | 'not-found'
+  | 'forbidden'
+  | 'unauthorized'
+  | 'internal-server-error'
+  | 'unverified'
+  | 'invalid-credentials'
+  | 'invalid-action'
+  | 'expired-code'
+  | 'invalid-code'
 
 export interface ApiRes<T = {}> {
   success: boolean
-  statusCode: ApiStatusCode
-  data?: T
-  error?: ApiError
+  statusCode: number
+  data: T | null
+  error: ApiError | null
 }
-
-type RequiredKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
-}[keyof T]
-
-type RequiredFields<T> = Pick<T, RequiredKeys<T>>
-
-export type SuccessRes<T = {}> = RequiredFields<ApiRes<T>>
 
 export type Api<T = {}> = Promise<ApiRes<T>>
 
@@ -44,26 +22,16 @@ export function ok<T>(data?: T): ApiRes<T> {
   return {
     success: true,
     statusCode: 200,
-    data,
-    error: {
-      code: 'ok',
-    },
+    data: data ?? null,
+    error: null,
   }
 }
 
-export function err<T, C extends ApiStatusCode>(
-  statusCode: C,
-  errorCode: ApiStatus[C][number],
-  details?: Partial<Omit<ApiError, 'code'>>,
-): ApiRes<T> {
+export function err<T>(statusCode: number, error: ApiError, data?: T): ApiRes<T> {
   return {
     success: false,
     statusCode,
-    error: {
-      code: errorCode,
-      message: details?.message,
-      fields: details?.fields,
-      details: details?.details,
-    },
+    error: error ?? null,
+    data: data ?? null,
   }
 }
