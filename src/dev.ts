@@ -22,6 +22,7 @@ export function setupDevRoutes(app: Express) {
     ws: true,
     pathRewrite: { '^/prisma': '' },
     selfHandleResponse: true,
+    pathFilter: (_path, req) => (req.headers.referer?.includes('prisma') || req.url?.includes('prisma')) ?? false,
     on: {
       proxyRes: responseInterceptor(async (buf, _proxyRes, _req, res) => {
         const contentType = res.getHeader('content-type')
