@@ -2,8 +2,8 @@ import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
-import { roleMiddleware } from '../middleware/role.js'
-import { verifiedMiddleware } from '../middleware/verified.js'
+import { role } from '../middleware/role.js'
+import { verified } from '../middleware/verified.js'
 import { prisma } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
@@ -65,7 +65,7 @@ interface CalorieJournalResultData extends CalorieJournalData {
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(role('USER'), verified)
 export class CalorieController extends Controller {
   /** Get calorie data from product barcode. */
   @Get('/product/code/{code}')

@@ -38,7 +38,7 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
   }
 }
 
-export function authErrorMiddleware(e: any, _req: Request, res: Response, next: NextFunction): void {
+export function authError(e: any, _req: Request, res: Response, next: NextFunction): void {
   if (e instanceof AuthError) {
     res.json(err(401, 'unauthorized'))
   } else {

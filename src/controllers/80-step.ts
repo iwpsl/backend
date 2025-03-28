@@ -2,8 +2,8 @@ import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
-import { roleMiddleware } from '../middleware/role.js'
-import { verifiedMiddleware } from '../middleware/verified.js'
+import { role } from '../middleware/role.js'
+import { verified } from '../middleware/verified.js'
 import { prisma } from '../utils.js'
 
 interface StepJournalData {
@@ -19,7 +19,7 @@ interface StepJournalResultData extends StepJournalData {
 @Route('step')
 @Tags('Step')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(role('USER'), verified)
 export class StepController extends Controller {
   /** Create or update a journal entry. */
   @Post('/journal')

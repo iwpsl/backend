@@ -1,7 +1,7 @@
 import type { Api } from '../api.js'
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
-import { roleMiddleware } from '../middleware/role.js'
+import { role } from '../middleware/role.js'
 import { prisma } from '../utils.js'
 
 type AdminProfileData = Array<{
@@ -17,7 +17,7 @@ type AdminProfileData = Array<{
 @Route('admin')
 @Tags('Admin')
 @Security('auth')
-@Middlewares(roleMiddleware('ADMIN'))
+@Middlewares(role('ADMIN'))
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profiles')

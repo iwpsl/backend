@@ -2,8 +2,8 @@ import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
-import { roleMiddleware } from '../middleware/role.js'
-import { verifiedMiddleware } from '../middleware/verified.js'
+import { role } from '../middleware/role.js'
+import { verified } from '../middleware/verified.js'
 import { prisma } from '../utils.js'
 
 interface ProfileData {
@@ -18,7 +18,7 @@ interface ProfileData {
 @Route('profile')
 @Tags('Profile')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(role('USER'), verified)
 export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
