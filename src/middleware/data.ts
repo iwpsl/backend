@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-export function dataMiddleware(_req: Request, res: Response, next: NextFunction) {
+export function data(_req: Request, res: Response, next: NextFunction) {
   const ogJson = res.json
   const ogStatus = res.status
 

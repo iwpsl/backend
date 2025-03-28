@@ -1,27 +1,29 @@
 import type { Role, VerificationAction } from '@prisma/client'
-import type { Api, ApiRes } from '../api.js'
+import type { Api, ApiRes, SuccessRes } from '../api.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
+import { IsEmail, Length } from 'class-validator'
 import dedent from 'dedent'
-import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Get, Middlewares, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { firebaseAuth } from '../firebase/index.js'
+import { validate } from '../middleware/validate.js'
 import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils.js'
 
-interface SignupData {
-  email: string
-  password: string
-  role: Role
+class SignupData {
+  @IsEmail() email!: string
+  password!: string
+  role!: Role
 }
 
-interface SignupVerifyCodeData {
-  code: string
+class SignupVerifyCodeData {
+  @Length(4) code!: string
 }
 
-interface LoginData {
-  email: string
-  password: string
+class LoginData {
+  @IsEmail() email!: string
+  password!: string
 }
 
 interface TokenData {
@@ -32,19 +34,19 @@ interface LoginFirebaseData {
   idToken: string
 }
 
-interface ResetPasswordSendCodeData {
-  email: string
+class ResetPasswordSendCodeData {
+  @IsEmail() email!: string
 }
 
-interface ResetPasswordVerifyCodeData {
-  email: string
-  code: string
+class ResetPasswordVerifyCodeData {
+  @IsEmail() email!: string
+  @Length(4) code!: string
 }
 
-interface ResetPasswordData {
-  email: string
-  password: string
-  token: string
+class ResetPasswordData {
+  @IsEmail() email!: string
+  password!: string
+  token!: string
 }
 
 async function genVerificationCode(email: string, action: VerificationAction) {
@@ -114,14 +116,9 @@ export class AuthController extends Controller {
 
   /** Sign up. */
   @Post('/signup')
+  @Middlewares(validate(SignupData))
   public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
-
-    // Email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format')
-    }
 
     const user = await prisma.user.create({
       data: {
@@ -183,6 +180,8 @@ export class AuthController extends Controller {
 
   /** Login. */
   @Post('/login')
+  @Middlewares(validate(LoginData))
+  @Response<SuccessRes<TokenData>>(200)
   @Response(401, 'Invalid username or password')
   @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
   public async login(@Body() body: LoginData): Api<TokenData> {
@@ -256,6 +255,7 @@ export class AuthController extends Controller {
 
   /** Send an email containing verification code to reset user password. */
   @Post('/reset-password/send-code')
+  @Middlewares(validate(ResetPasswordSendCodeData))
   @Response(404, 'User not found')
   @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
   public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): Api {
@@ -279,6 +279,7 @@ export class AuthController extends Controller {
 
   /** Verify the code sent via email. */
   @Post('/reset-password/verify-code')
+  @Middlewares(validate(ResetPasswordVerifyCodeData))
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
@@ -295,6 +296,7 @@ export class AuthController extends Controller {
 
   /** Reset password. Need to send code and verify it first to get the token. */
   @Post('/reset-password/reset')
+  @Middlewares(validate(ResetPasswordData))
   @Response(404, 'Request for reset password not found')
   @Response(410, 'Reset request older than 10 minutes')
   @Response(401, 'Invalid code')
