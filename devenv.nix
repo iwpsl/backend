@@ -20,7 +20,6 @@
     eslint = {
       enable = true;
       files = ".*";
-      pass_filenames = false;
     };
   };
 
@@ -51,7 +50,7 @@
 
   processes = {
     prisma-studio.exec = ''
-      prisma studio
+      prisma studio --browser none
     '';
 
     express-prod.exec = ''
