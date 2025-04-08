@@ -30,14 +30,6 @@ export interface ApiRes<T = {}> {
   error?: ApiError
 }
 
-type RequiredKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
-}[keyof T]
-
-type RequiredFields<T> = Pick<T, RequiredKeys<T>>
-
-export type SuccessRes<T = {}> = RequiredFields<ApiRes<T>>
-
 export type Api<T = {}> = Promise<ApiRes<T>>
 
 export function ok<T>(data?: T): ApiRes<T> {

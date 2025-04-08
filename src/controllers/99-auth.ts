@@ -1,11 +1,11 @@
 import type { Role, VerificationAction } from '@prisma/client'
-import type { Api, ApiRes, SuccessRes } from '../api.js'
+import type { Api, ApiRes } from '../api.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'
 import { IsEmail, Length } from 'class-validator'
 import dedent from 'dedent'
-import { Body, Controller, Get, Middlewares, Post, Request, Response, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Example, Get, Middlewares, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { firebaseAuth } from '../firebase/index.js'
 import { validate } from '../middleware/validate.js'
@@ -181,9 +181,25 @@ export class AuthController extends Controller {
   /** Login. */
   @Post('/login')
   @Middlewares(validate(LoginData))
-  @Response<SuccessRes<TokenData>>(200)
-  @Response(401, 'Invalid username or password')
-  @Response(403, 'Invalid login method, e.g. trying to login to OAuth user with email')
+  @Example<ApiRes<TokenData>>({
+    success: true,
+    statusCode: 200,
+    data: { token: 'abc' },
+  })
+  @Response<ApiRes<TokenData>>(401, 'Invalid username or password', {
+    success: false,
+    statusCode: 401,
+    error: {
+      code: 'invalid-credentials',
+    },
+  })
+  @Response<ApiRes<TokenData>>(403, 'Trying to login Firebase user with email', {
+    success: false,
+    statusCode: 403,
+    error: {
+      code: 'forbidden',
+    },
+  })
   public async login(@Body() body: LoginData): Api<TokenData> {
     const { email, password } = body
 
@@ -214,6 +230,11 @@ export class AuthController extends Controller {
 
   /** Login using Firebase Auth. */
   @Post('/login/firebase')
+  @Example<ApiRes<TokenData>>({
+    success: true,
+    statusCode: 200,
+    data: { token: 'abc' },
+  })
   public async loginFirebase(@Body() body: LoginFirebaseData): Api<TokenData> {
     const { idToken } = body
 
