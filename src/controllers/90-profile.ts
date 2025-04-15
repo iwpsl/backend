@@ -1,10 +1,13 @@
 import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
-import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags } from 'tsoa'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import sharp from 'sharp'
+import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
 import { err, ok } from '../api.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { prisma } from '../utils.js'
+import { baseUrl, pathFromRoot, prisma } from '../utils.js'
 
 interface ProfileData {
   name: string
@@ -15,6 +18,11 @@ interface ProfileData {
   bloodType: string
 }
 
+interface ProfileDataResult extends ProfileData {
+  userId: string
+  avatarUrl: string
+}
+
 @Route('profile')
 @Tags('Profile')
 @Security('auth')
@@ -22,13 +30,16 @@ interface ProfileData {
 export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
-  public async getProfile(@Request() req: AuthRequest): Api<ProfileData> {
+  public async getProfile(@Request() req: AuthRequest): Api<ProfileDataResult> {
     const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } })
     if (!profile)
       return err(404, 'not-found')
 
-    const { id, userId, updatedAt, createdAt, ...rest } = profile
-    return ok(rest)
+    const { id, updatedAt, createdAt, ...rest } = profile
+    return ok({
+      avatarUrl: `${baseUrl}/avatars/${profile.userId}.jpg`,
+      ...rest,
+    })
   }
 
   /** Create or update the profile for currently logged-in user. */
@@ -44,6 +55,23 @@ export class ProfileController extends Controller {
       update: body,
     })
 
+    return ok()
+  }
+
+  @Post('/avatar')
+  public async uploadAvatar(
+    @Request() req: AuthRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ): Api {
+    const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
+    await fs.mkdir(path.dirname(imgPath), { recursive: true })
+
+    await sharp(file.buffer)
+      .resize(300, 300)
+      .jpeg({ quality: 80 })
+      .toFile(imgPath)
+
+    console.log(imgPath)
     return ok()
   }
 }

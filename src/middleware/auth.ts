@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
 }
 
 export interface AuthUser {
-  id: number
+  id: string
   tokenVersion: number
 }
 
