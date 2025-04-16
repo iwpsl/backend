@@ -74,7 +74,7 @@ export class WaterController extends Controller {
   }
 
   /** Get detail of a water intake entry. */
-  @Get('/journal/{id}')
+  @Get('/journal/id/{id}')
   public async getWaterJournalById(
     @Request() req: AuthRequest,
     @Path() id: number,
@@ -83,6 +83,30 @@ export class WaterController extends Controller {
       where: {
         id,
         userId: req.user!.id,
+      },
+    })
+
+    if (!res)
+      return err(404, 'not-found')
+
+    return ok(res)
+  }
+
+  /** Get entry by date. */
+  @Get('/journal/date/{date}')
+  public async getCalorieJournalByDate(
+    @Request() req: AuthRequest,
+    @Path() date: Date,
+  ): Api<WaterJournalResultData> {
+    const userId = req.user!.id
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+    const res = await prisma.waterEntry.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: dateOnly,
+        },
       },
     })
 
