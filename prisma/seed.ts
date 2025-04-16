@@ -1,5 +1,6 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
+import { MealType } from '@prisma/client'
 import { bcryptHash, prisma } from '../src/utils.js'
 
 async function up() {
@@ -49,10 +50,13 @@ async function up() {
           userId: user.id,
           date,
           food: faker.food.dish(),
+          mealType: faker.helpers.enumValue(MealType),
           energyKcal: faker.number.int({ min: 100, max: 1200 }),
           carbohydrateGr: faker.number.int({ min: 10, max: 100 }),
           proteinGr: faker.number.int({ min: 5, max: 50 }),
           fatGr: faker.number.int({ min: 5, max: 60 }),
+          sugarGr: faker.number.int({ min: 0, max: 150 }),
+          sodiumMg: faker.number.int({ min: 0, max: 6000 }),
         },
       })
     }

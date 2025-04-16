@@ -5,6 +5,9 @@ CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
 CREATE TYPE "AuthType" AS ENUM ('EMAIL', 'FIREBASE');
 
 -- CreateEnum
+CREATE TYPE "MealType" AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER', 'SNACK');
+
+-- CreateEnum
 CREATE TYPE "VerificationAction" AS ENUM ('SIGNUP', 'RESET_PASSWORD');
 
 -- CreateTable
@@ -43,10 +46,13 @@ CREATE TABLE "CalorieEntry" (
     "id" SERIAL NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "food" TEXT NOT NULL,
+    "mealType" "MealType" NOT NULL,
     "energyKcal" INTEGER NOT NULL,
     "proteinGr" INTEGER NOT NULL,
     "carbohydrateGr" INTEGER NOT NULL,
     "fatGr" INTEGER NOT NULL,
+    "sugarGr" INTEGER NOT NULL,
+    "sodiumMg" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
 
     CONSTRAINT "CalorieEntry_pkey" PRIMARY KEY ("id")

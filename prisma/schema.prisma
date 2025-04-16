@@ -57,14 +57,24 @@ model Profile {
   updatedAt DateTime @updatedAt
 }
 
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
 model CalorieEntry {
   id             Int      @id @default(autoincrement())
   date           DateTime @default(now())
   food           String
+  mealType       MealType
   energyKcal     Int
   proteinGr      Int
   carbohydrateGr Int
   fatGr          Int
+  sugarGr        Int
+  sodiumMg       Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
