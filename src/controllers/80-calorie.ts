@@ -1,3 +1,4 @@
+import type { MealType } from '@prisma/client'
 import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
@@ -52,10 +53,25 @@ interface CalorieJournalData {
   id?: number
   date: Date
   food: string
+  mealType: MealType
   energyKcal: number
   proteinGr: number
   carbohydrateGr: number
   fatGr: number
+  sugarGr: number
+  sodiumMg: number
+}
+
+interface DailyCalorieJournalData {
+  total: {
+    energyKcal: number
+    proteinGr: number
+    carbohydrateGr: number
+    fatGr: number
+    sugarGr: number
+    sodiumMg: number
+  }
+  entries: CalorieJournalData[]
 }
 
 interface CalorieJournalResultData extends CalorieJournalData {
@@ -153,14 +169,11 @@ export class CalorieController extends Controller {
         where: { userId },
       })
 
-    return ok(res.map((it) => {
-      const { userId, ...rest } = it
-      return rest
-    }))
+    return ok(res.map(({ userId, ...rest }) => rest))
   }
 
   /** Get detail of a journal entry. */
-  @Get('/journal/{id}')
+  @Get('/journal/id/{id}')
   public async getCalorieJournalById(
     @Request() req: AuthRequest,
     @Path() id: number,
@@ -176,5 +189,38 @@ export class CalorieController extends Controller {
       return err(404, 'not-found')
 
     return ok(res)
+  }
+
+  /** Get a list of entries by date. */
+  @Get('/journal/date/{date}')
+  public async getCalorieJournalsByDate(
+    @Request() req: AuthRequest,
+    @Path() date: Date,
+  ): Api<DailyCalorieJournalData> {
+    const userId = req.user!.id
+    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+
+    const res = await prisma.calorieEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startOfDay,
+          lt: endOfDay,
+        },
+      },
+    })
+
+    return ok({
+      total: {
+        energyKcal: res.reduce((acc, curr) => acc + curr.energyKcal, 0),
+        carbohydrateGr: res.reduce((acc, curr) => acc + curr.carbohydrateGr, 0),
+        proteinGr: res.reduce((acc, curr) => acc + curr.proteinGr, 0),
+        fatGr: res.reduce((acc, curr) => acc + curr.fatGr, 0),
+        sugarGr: res.reduce((acc, curr) => acc + curr.sugarGr, 0),
+        sodiumMg: res.reduce((acc, curr) => acc + curr.sodiumMg, 0),
+      },
+      entries: res.map(({ userId, ...rest }) => rest),
+    })
   }
 }
