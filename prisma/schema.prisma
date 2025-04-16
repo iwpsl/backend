@@ -84,7 +84,7 @@ model CalorieEntry {
 
 model WaterEntry {
   id       Int      @id @default(autoincrement())
-  date     DateTime @default(now())
+  date     DateTime
   amountMl Int
 
   userId String @db.Uuid

@@ -61,7 +61,7 @@ CREATE TABLE "CalorieEntry" (
 -- CreateTable
 CREATE TABLE "WaterEntry" (
     "id" SERIAL NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date" TIMESTAMP(3) NOT NULL,
     "amountMl" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
 
