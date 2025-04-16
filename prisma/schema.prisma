@@ -23,13 +23,13 @@ enum AuthType {
 }
 
 model User {
-  id           Int     @id @default(autoincrement())
-  email        String  @unique
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
   authType     AuthType
   password     String?
-  role         Role    @default(USER)
-  isVerified   Boolean @default(false)
-  tokenVersion Int     @default(0)
+  role         Role     @default(USER)
+  isVerified   Boolean  @default(false)
+  tokenVersion Int      @default(0)
 
   profile Profile?
   calorie CalorieEntry[]
@@ -50,8 +50,8 @@ model Profile {
   weightKg    Int
   bloodType   String
 
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -66,8 +66,8 @@ model CalorieEntry {
   carbohydrateGr Int
   fatGr          Int
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, food])
 }
@@ -77,8 +77,8 @@ model WaterEntry {
   date     DateTime @default(now())
   amountMl Int
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
 }
@@ -88,8 +88,8 @@ model StepEntry {
   date  DateTime @default(now())
   steps Int
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
 }
@@ -100,8 +100,8 @@ model FastingEntry {
   endTime   DateTime
   durationH Float
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum VerificationAction {

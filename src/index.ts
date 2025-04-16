@@ -6,7 +6,7 @@ import { authErrorMiddleware } from './middleware/auth.js'
 import { dataMiddleware } from './middleware/data.js'
 import { errorMiddleware } from './middleware/error.js'
 import { RegisterRoutes } from './routes/routes.js'
-import { isDev, port } from './utils.js'
+import { isDev, pathFromRoot, port } from './utils.js'
 
 dotenv.config()
 
@@ -16,6 +16,8 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 app.use(dataMiddleware)
+
+app.use(express.static(pathFromRoot('public')))
 
 RegisterRoutes(app)
 

@@ -9,7 +9,7 @@ CREATE TYPE "VerificationAction" AS ENUM ('SIGNUP', 'RESET_PASSWORD');
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "authType" "AuthType" NOT NULL,
     "password" TEXT,
@@ -31,7 +31,7 @@ CREATE TABLE "Profile" (
     "heightCm" INTEGER NOT NULL,
     "weightKg" INTEGER NOT NULL,
     "bloodType" TEXT NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -47,7 +47,7 @@ CREATE TABLE "CalorieEntry" (
     "proteinGr" INTEGER NOT NULL,
     "carbohydrateGr" INTEGER NOT NULL,
     "fatGr" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
 
     CONSTRAINT "CalorieEntry_pkey" PRIMARY KEY ("id")
 );
@@ -57,7 +57,7 @@ CREATE TABLE "WaterEntry" (
     "id" SERIAL NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "amountMl" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
 
     CONSTRAINT "WaterEntry_pkey" PRIMARY KEY ("id")
 );
@@ -67,7 +67,7 @@ CREATE TABLE "StepEntry" (
     "id" SERIAL NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "steps" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
 
     CONSTRAINT "StepEntry_pkey" PRIMARY KEY ("id")
 );
@@ -78,7 +78,7 @@ CREATE TABLE "FastingEntry" (
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3) NOT NULL,
     "durationH" DOUBLE PRECISION NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
 
     CONSTRAINT "FastingEntry_pkey" PRIMARY KEY ("id")
 );
