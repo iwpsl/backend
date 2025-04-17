@@ -94,7 +94,7 @@ export class WaterController extends Controller {
 
   /** Get entry by date. */
   @Get('/journal/date/{date}')
-  public async getCalorieJournalByDate(
+  public async getWaterJournalByDate(
     @Request() req: AuthRequest,
     @Path() date: Date,
   ): Api<WaterJournalResultData> {
