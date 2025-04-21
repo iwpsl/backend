@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import { Prisma } from '@prisma/client'
+import { ValidateError } from 'tsoa'
 import { err } from '../api.js'
 import { isDev } from '../utils.js'
 
@@ -13,6 +14,12 @@ export function errorMiddleware(e: any, _req: Request, res: Response, next: Next
     if (e.code === 'P2025') {
       return r(res.json(err(404, 'not-found')))
     }
+  }
+
+  if (e instanceof ValidateError) {
+    return r(res.json(err(400, 'validation-error', {
+      validationErrors: e.fields,
+    })))
   }
 
   if (e instanceof Error) {

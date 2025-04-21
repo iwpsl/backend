@@ -1,4 +1,4 @@
-import type { Api } from '../api.js'
+import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
@@ -7,13 +7,13 @@ import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 
 interface StepJournalData {
-  id?: number
+  id?: UUID
   date: Date
   steps: number
 }
 
 interface StepJournalResultData extends StepJournalData {
-  id: number
+  id: UUID
 }
 
 @Route('step')
@@ -54,7 +54,7 @@ export class StepController extends Controller {
   @Get('/journal')
   public async getStepJournals(
     @Request() req: AuthRequest,
-    @Query() after?: number,
+    @Query() after?: UUID,
   ): Api<StepJournalResultData[]> {
     const userId = req.user!.id
 
@@ -64,10 +64,12 @@ export class StepController extends Controller {
         skip: 1,
         cursor: { id: after },
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
       : await db.stepEntry.findMany({
         take: 10,
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
 
     return ok(res.map((it) => {
@@ -80,7 +82,7 @@ export class StepController extends Controller {
   @Get('/journal/{id}')
   public async getStepJournalById(
     @Request() req: AuthRequest,
-    @Path() id: number,
+    @Path() id: UUID,
   ): Api<StepJournalResultData> {
     const res = await db.stepEntry.findUnique({
       where: {

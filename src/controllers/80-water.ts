@@ -1,5 +1,5 @@
 import type { WaterEntry } from '@prisma/client'
-import type { Api } from '../api.js'
+import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
@@ -8,13 +8,13 @@ import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 
 interface WaterJournalData {
-  id?: number
+  id?: UUID
   date: Date
   amountMl: number
 }
 
 interface WaterJournalResultData extends WaterJournalData {
-  id: number
+  id: UUID
 }
 
 function clean(res: WaterEntry) {
@@ -61,7 +61,7 @@ export class WaterController extends Controller {
   @Delete('/journal/id/{id}')
   public async deleteWaterJournal(
     @Request() req: AuthRequest,
-    @Path() id: number,
+    @Path() id: UUID,
   ): Api {
     const userId = req.user!.id
 
@@ -77,7 +77,7 @@ export class WaterController extends Controller {
   @Get('/journal')
   public async getWaterJournals(
     @Request() req: AuthRequest,
-    @Query() after?: number,
+    @Query() after?: UUID,
   ): Api<WaterJournalResultData[]> {
     const userId = req.user!.id
 
@@ -87,10 +87,12 @@ export class WaterController extends Controller {
         skip: 1,
         cursor: { id: after },
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
       : await db.waterEntry.findMany({
         take: 10,
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
 
     return ok(res.map(clean))
@@ -100,7 +102,7 @@ export class WaterController extends Controller {
   @Get('/journal/id/{id}')
   public async getWaterJournalById(
     @Request() req: AuthRequest,
-    @Path() id: number,
+    @Path() id: UUID,
   ): Api<WaterJournalResultData> {
     const res = await db.waterEntry.findUnique({
       where: {

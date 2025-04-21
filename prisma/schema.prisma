@@ -42,7 +42,7 @@ model User {
 }
 
 model Profile {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @default(uuid()) @db.Uuid
   name        String
   dateOfBirth DateTime
   gender      String
@@ -65,7 +65,7 @@ enum MealType {
 }
 
 model CalorieEntry {
-  id             Int      @id @default(autoincrement())
+  id             String   @id @default(uuid()) @db.Uuid
   date           DateTime @default(now())
   food           String
   mealType       MealType
@@ -79,45 +79,45 @@ model CalorieEntry {
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([userId, date, food])
 }
 
 model WaterEntry {
-  id       Int      @id @default(autoincrement())
+  id       String   @id @default(uuid()) @db.Uuid
   date     DateTime
   amountMl Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([userId, date])
 }
 
 model StepEntry {
-  id    Int      @id @default(autoincrement())
+  id    String   @id @default(uuid()) @db.Uuid
   date  DateTime @default(now())
   steps Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([userId, date])
 }
 
 model FastingEntry {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid()) @db.Uuid
   startTime DateTime
   endTime   DateTime
   durationH Float
@@ -125,8 +125,8 @@ model FastingEntry {
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 }
 
@@ -136,7 +136,7 @@ enum VerificationAction {
 }
 
 model PendingVerification {
-  id     Int                @id @default(autoincrement())
+  id     String             @id @default(uuid()) @db.Uuid
   email  String             @unique
   code   String
   action VerificationAction

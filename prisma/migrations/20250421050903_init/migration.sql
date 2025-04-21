@@ -27,7 +27,7 @@ CREATE TABLE "User" (
 
 -- CreateTable
 CREATE TABLE "Profile" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "dateOfBirth" TIMESTAMP(3) NOT NULL,
     "gender" TEXT NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE "Profile" (
 
 -- CreateTable
 CREATE TABLE "CalorieEntry" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "food" TEXT NOT NULL,
     "mealType" "MealType" NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE "CalorieEntry" (
 
 -- CreateTable
 CREATE TABLE "WaterEntry" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "amountMl" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE "WaterEntry" (
 
 -- CreateTable
 CREATE TABLE "StepEntry" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "steps" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
@@ -89,7 +89,7 @@ CREATE TABLE "StepEntry" (
 
 -- CreateTable
 CREATE TABLE "FastingEntry" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3) NOT NULL,
     "durationH" DOUBLE PRECISION NOT NULL,
@@ -103,7 +103,7 @@ CREATE TABLE "FastingEntry" (
 
 -- CreateTable
 CREATE TABLE "PendingVerification" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
     "code" TEXT NOT NULL,
     "action" "VerificationAction" NOT NULL,

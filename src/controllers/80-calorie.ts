@@ -1,5 +1,5 @@
 import type { CalorieEntry, MealType } from '@prisma/client'
-import type { Api } from '../api.js'
+import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
@@ -50,7 +50,7 @@ interface SearchData {
 }
 
 interface CalorieJournalData {
-  id?: number
+  id?: UUID
   date: Date
   food: string
   mealType: MealType
@@ -75,7 +75,7 @@ interface DailyCalorieJournalData {
 }
 
 interface CalorieJournalResultData extends CalorieJournalData {
-  id: number
+  id: UUID
 }
 
 function clean(res: CalorieEntry) {
@@ -154,7 +154,7 @@ export class CalorieController extends Controller {
   @Delete('/journal/id/{id}')
   public async deleteCalorieJournal(
     @Request() req: AuthRequest,
-    @Path() id: number,
+    @Path() id: UUID,
   ): Api {
     const userId = req.user!.id
 
@@ -170,7 +170,7 @@ export class CalorieController extends Controller {
   @Get('/journal')
   public async getCalorieJournals(
     @Request() req: AuthRequest,
-    @Query() after?: number,
+    @Query() after?: UUID,
   ): Api<CalorieJournalResultData[]> {
     const userId = req.user!.id
 
@@ -180,10 +180,12 @@ export class CalorieController extends Controller {
         skip: 1,
         cursor: { id: after },
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
       : await db.calorieEntry.findMany({
         take: 10,
         where: { userId },
+        orderBy: { createdAt: 'asc' },
       })
 
     return ok(res.map(clean))
@@ -193,7 +195,7 @@ export class CalorieController extends Controller {
   @Get('/journal/id/{id}')
   public async getCalorieJournalById(
     @Request() req: AuthRequest,
-    @Path() id: number,
+    @Path() id: UUID,
   ): Api<CalorieJournalResultData> {
     const res = await db.calorieEntry.findUnique({
       where: {
