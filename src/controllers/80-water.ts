@@ -28,13 +28,15 @@ export class WaterController extends Controller {
     @Body() body: WaterJournalData,
   ): Api {
     const userId = req.user!.id
-    const { id, ...data } = body
+    const { id, date, ...data } = body
+    const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 
     if (body.id) {
       await prisma.waterEntry.update({
         where: { id },
         data: {
           userId,
+          date: dateOnly,
           ...data,
         },
       })
@@ -42,6 +44,7 @@ export class WaterController extends Controller {
       await prisma.waterEntry.create({
         data: {
           userId,
+          date: dateOnly,
           ...data,
         },
       })
@@ -99,7 +102,7 @@ export class WaterController extends Controller {
     @Path() date: Date,
   ): Api<WaterJournalResultData> {
     const userId = req.user!.id
-    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 
     const res = await prisma.waterEntry.findUnique({
       where: {
