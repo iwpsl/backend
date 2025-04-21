@@ -5,9 +5,10 @@ import path from 'node:path'
 import sharp from 'sharp'
 import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
 import { err, ok } from '../api.js'
+import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { baseUrl, pathFromRoot, prisma } from '../utils.js'
+import { baseUrl, pathFromRoot } from '../utils.js'
 
 interface ProfileData {
   name: string
@@ -31,7 +32,7 @@ export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()
   public async getProfile(@Request() req: AuthRequest): Api<ProfileDataResult> {
-    const profile = await prisma.profile.findUnique({ where: { userId: req.user!.id } })
+    const profile = await db.profile.findUnique({ where: { userId: req.user!.id } })
     if (!profile)
       return err(404, 'not-found')
 
@@ -49,7 +50,7 @@ export class ProfileController extends Controller {
     @Body() body: ProfileData,
   ): Api {
     const id = req.user!.id
-    await prisma.profile.upsert({
+    await db.profile.upsert({
       where: { userId: id },
       create: { userId: id, ...body },
       update: body,

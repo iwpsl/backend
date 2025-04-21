@@ -2,9 +2,9 @@ import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
+import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { prisma } from '../utils.js'
 
 interface StepJournalData {
   id?: number
@@ -31,7 +31,7 @@ export class StepController extends Controller {
     const { id, ...data } = body
 
     if (body.id) {
-      await prisma.stepEntry.update({
+      await db.stepEntry.update({
         where: { id },
         data: {
           userId,
@@ -39,7 +39,7 @@ export class StepController extends Controller {
         },
       })
     } else {
-      await prisma.stepEntry.create({
+      await db.stepEntry.create({
         data: {
           userId,
           ...data,
@@ -59,13 +59,13 @@ export class StepController extends Controller {
     const userId = req.user!.id
 
     const res = after
-      ? await prisma.stepEntry.findMany({
+      ? await db.stepEntry.findMany({
         take: 10,
         skip: 1,
         cursor: { id: after },
         where: { userId },
       })
-      : await prisma.stepEntry.findMany({
+      : await db.stepEntry.findMany({
         take: 10,
         where: { userId },
       })
@@ -82,7 +82,7 @@ export class StepController extends Controller {
     @Request() req: AuthRequest,
     @Path() id: number,
   ): Api<StepJournalResultData> {
-    const res = await prisma.stepEntry.findUnique({
+    const res = await db.stepEntry.findUnique({
       where: {
         id,
         userId: req.user!.id,

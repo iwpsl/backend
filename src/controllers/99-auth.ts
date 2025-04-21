@@ -6,8 +6,9 @@ import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
+import { db } from '../db.js'
 import { firebaseAuth } from '../firebase/index.js'
-import { bcryptHash, jwtSign, jwtVerify, prisma, sendMail } from '../utils.js'
+import { bcryptHash, jwtSign, jwtVerify, sendMail } from '../utils.js'
 
 interface SignupData {
   email: string
@@ -51,7 +52,7 @@ async function genVerificationCode(email: string, action: VerificationAction) {
   const code = `${crypto.randomInt(1000, 9999)}`
 
   const hashedCode = await bcryptHash(code)
-  await prisma.pendingVerification.upsert({
+  await db.pendingVerification.upsert({
     where: { email },
     create: { email, action, code: hashedCode },
     update: { action, code: hashedCode },
@@ -64,7 +65,7 @@ type VerifyResult<T> = Promise<ApiRes<T> | undefined>
 const tenMinutes = 10 * 60 * 100
 
 async function verifyCode<T = {}>(email: string, code: string, action: VerificationAction): VerifyResult<T> {
-  const pending = await prisma.pendingVerification.findUnique({ where: { email } })
+  const pending = await db.pendingVerification.findUnique({ where: { email } })
   if (!pending)
     return err(404, 'not-found')
 
@@ -73,7 +74,7 @@ async function verifyCode<T = {}>(email: string, code: string, action: Verificat
 
   const timeSinceRequested = Date.now() - pending.updatedAt.getTime()
   if (timeSinceRequested > tenMinutes) {
-    await prisma.pendingVerification.delete({ where: { email } })
+    await db.pendingVerification.delete({ where: { email } })
     return err(410, 'expired-code')
   }
 
@@ -89,7 +90,7 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   if (email !== jwt.email)
     return err(403, 'forbidden')
 
-  const pending = await prisma.pendingVerification.findUnique({ where: { email } })
+  const pending = await db.pendingVerification.findUnique({ where: { email } })
   if (!pending)
     return err(404, 'not-found')
 
@@ -97,7 +98,7 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   if (!validCode)
     return err(401, 'invalid-code')
 
-  await prisma.pendingVerification.delete({ where: { email } })
+  await db.pendingVerification.delete({ where: { email } })
 }
 
 // TODO: Field verification
@@ -123,7 +124,7 @@ export class AuthController extends Controller {
       throw new Error('Invalid email format')
     }
 
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         email,
         role,
@@ -173,7 +174,7 @@ export class AuthController extends Controller {
       return err
 
     const { id } = req.user!
-    await prisma.user.update({
+    await db.user.update({
       where: { id },
       data: { isVerified: true },
     })
@@ -188,7 +189,7 @@ export class AuthController extends Controller {
   public async login(@Body() body: LoginData): Api<TokenData> {
     const { email, password } = body
 
-    let user = await prisma.user.findUnique({ where: { email } })
+    let user = await db.user.findUnique({ where: { email } })
     if (!user)
       return err(401, 'invalid-credentials')
     if (user.authType !== 'EMAIL')
@@ -198,7 +199,7 @@ export class AuthController extends Controller {
     if (!validPassword)
       return err(401, 'invalid-credentials')
 
-    user = await prisma.user.update({
+    user = await db.user.update({
       where: { email },
       data: {
         tokenVersion: { increment: 1 },
@@ -222,7 +223,7 @@ export class AuthController extends Controller {
     if (!email)
       return err(401, 'invalid-credentials')
 
-    const user = await prisma.user.upsert({
+    const user = await db.user.upsert({
       where: { email },
       update: {},
       create: {
@@ -244,7 +245,7 @@ export class AuthController extends Controller {
   @Post('/logout')
   @Security('auth')
   public async logout(@Request() req: AuthRequest): Api {
-    await prisma.user.update({
+    await db.user.update({
       where: { id: req.user!.id },
       data: {
         tokenVersion: { increment: 1 },
@@ -261,7 +262,7 @@ export class AuthController extends Controller {
   public async resetPasswordSendCode(@Body() body: ResetPasswordSendCodeData): Api {
     const { email } = body
 
-    const user = await prisma.user.findUnique({ where: { email } })
+    const user = await db.user.findUnique({ where: { email } })
     if (!user)
       return err(404, 'not-found')
     if (user.authType !== 'EMAIL')
@@ -305,7 +306,7 @@ export class AuthController extends Controller {
     if (err)
       return err
 
-    await prisma.user.update({
+    await db.user.update({
       where: { email },
       data: {
         password: await bcryptHash(password),

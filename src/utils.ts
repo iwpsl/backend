@@ -1,7 +1,6 @@
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import dotenv from 'dotenv'
 import jwt from 'jsonwebtoken'
@@ -19,8 +18,6 @@ export function pathFromRoot(str: string) {
 }
 
 export const baseUrl = process.env.BASE_URL as string
-
-export const prisma = new PrismaClient()
 
 export function jwtSign<T extends Record<string, any>>(payload: T, option?: jwt.SignOptions) {
   return jwt.sign(payload, process.env.JWT_SECRET as string, option)

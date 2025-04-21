@@ -1,7 +1,8 @@
 import type { User } from '@prisma/client'
 import type { NextFunction, Request, Response } from 'express'
 import { err } from '../api.js'
-import { jwtVerify, prisma } from '../utils.js'
+import { db } from '../db.js'
+import { jwtVerify } from '../utils.js'
 
 export interface AuthRequest extends Request {
   user?: User
@@ -25,7 +26,7 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
       if (!jwtUser)
         throw new AuthError()
 
-      const user = await prisma.user.findUnique({ where: { id: jwtUser.id } })
+      const user = await db.user.findUnique({ where: { id: jwtUser.id } })
       if (!user)
         throw new AuthError()
       if (jwtUser.tokenVersion !== user.tokenVersion)

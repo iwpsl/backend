@@ -1,8 +1,8 @@
 import type { Api } from '../api.js'
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
+import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
-import { prisma } from '../utils.js'
 
 type AdminProfileData = Array<{
   email: string
@@ -22,7 +22,7 @@ export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profiles')
   public async getProfiles(): Api<AdminProfileData> {
-    const r = await prisma.user.findMany({
+    const r = await db.user.findMany({
       where: {
         role: { not: 'ADMIN' },
         profile: { isNot: null },

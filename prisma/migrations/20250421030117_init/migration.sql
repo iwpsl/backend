@@ -54,6 +54,9 @@ CREATE TABLE "CalorieEntry" (
     "sugarGr" INTEGER NOT NULL,
     "sodiumMg" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "CalorieEntry_pkey" PRIMARY KEY ("id")
 );
@@ -64,6 +67,9 @@ CREATE TABLE "WaterEntry" (
     "date" TIMESTAMP(3) NOT NULL,
     "amountMl" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "WaterEntry_pkey" PRIMARY KEY ("id")
 );
@@ -74,6 +80,9 @@ CREATE TABLE "StepEntry" (
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "steps" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "StepEntry_pkey" PRIMARY KEY ("id")
 );
@@ -85,6 +94,9 @@ CREATE TABLE "FastingEntry" (
     "endTime" TIMESTAMP(3) NOT NULL,
     "durationH" DOUBLE PRECISION NOT NULL,
     "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "FastingEntry_pkey" PRIMARY KEY ("id")
 );

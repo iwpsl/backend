@@ -1,10 +1,11 @@
+import type { WaterEntry } from '@prisma/client'
 import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
-import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
+import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { prisma } from '../utils.js'
 
 interface WaterJournalData {
   id?: number
@@ -14,6 +15,11 @@ interface WaterJournalData {
 
 interface WaterJournalResultData extends WaterJournalData {
   id: number
+}
+
+function clean(res: WaterEntry) {
+  const { userId, ...rest } = cleanUpdateAttrs(res)
+  return rest
 }
 
 @Route('water')
@@ -32,16 +38,15 @@ export class WaterController extends Controller {
     const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 
     if (body.id) {
-      await prisma.waterEntry.update({
-        where: { id },
+      await db.waterEntry.update({
+        where: { id, userId, deletedAt: null },
         data: {
-          userId,
           date: dateOnly,
           ...data,
         },
       })
     } else {
-      await prisma.waterEntry.create({
+      await db.waterEntry.create({
         data: {
           userId,
           date: dateOnly,
@@ -49,6 +54,21 @@ export class WaterController extends Controller {
         },
       })
     }
+
+    return ok()
+  }
+
+  @Delete('/journal/id/{id}')
+  public async deleteWaterJournal(
+    @Request() req: AuthRequest,
+    @Path() id: number,
+  ): Api {
+    const userId = req.user!.id
+
+    await db.waterEntry.update({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    })
 
     return ok()
   }
@@ -62,18 +82,18 @@ export class WaterController extends Controller {
     const userId = req.user!.id
 
     const res = after
-      ? await prisma.waterEntry.findMany({
+      ? await db.waterEntry.findMany({
         take: 10,
         skip: 1,
         cursor: { id: after },
         where: { userId },
       })
-      : await prisma.waterEntry.findMany({
+      : await db.waterEntry.findMany({
         take: 10,
         where: { userId },
       })
 
-    return ok(res.map(({ userId, ...rest }) => rest))
+    return ok(res.map(clean))
   }
 
   /** Get detail of a water intake entry. */
@@ -82,7 +102,7 @@ export class WaterController extends Controller {
     @Request() req: AuthRequest,
     @Path() id: number,
   ): Api<WaterJournalResultData> {
-    const res = await prisma.waterEntry.findUnique({
+    const res = await db.waterEntry.findUnique({
       where: {
         id,
         userId: req.user!.id,
@@ -92,7 +112,7 @@ export class WaterController extends Controller {
     if (!res)
       return err(404, 'not-found')
 
-    return ok(res)
+    return ok(clean(res))
   }
 
   /** Get entry by date. */
@@ -104,7 +124,7 @@ export class WaterController extends Controller {
     const userId = req.user!.id
     const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 
-    const res = await prisma.waterEntry.findUnique({
+    const res = await db.waterEntry.findUnique({
       where: {
         userId_date: {
           userId,
@@ -116,6 +136,6 @@ export class WaterController extends Controller {
     if (!res)
       return err(404, 'not-found')
 
-    return ok(res)
+    return ok(clean(res))
   }
 }

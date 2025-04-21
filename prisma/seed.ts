@@ -1,7 +1,8 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
 import { MealType } from '@prisma/client'
-import { bcryptHash, prisma } from '../src/utils.js'
+import { db } from '../src/db.js'
+import { bcryptHash } from '../src/utils.js'
 
 async function up() {
   faker.seed(420)
@@ -19,7 +20,7 @@ async function up() {
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
 
   for (const email of emails) {
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         email,
         password,
@@ -28,7 +29,7 @@ async function up() {
       },
     })
 
-    await prisma.profile.create({
+    await db.profile.create({
       data: {
         userId: user.id,
         name: faker.person.fullName(),
@@ -45,7 +46,7 @@ async function up() {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
-      await prisma.calorieEntry.create({
+      await db.calorieEntry.create({
         data: {
           userId: user.id,
           date,
@@ -66,7 +67,7 @@ async function up() {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
-      await prisma.waterEntry.create({
+      await db.waterEntry.create({
         data: {
           userId: user.id,
           date,
@@ -80,7 +81,7 @@ async function up() {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
-      await prisma.stepEntry.create({
+      await db.stepEntry.create({
         data: {
           userId: user.id,
           date,
@@ -103,7 +104,7 @@ async function up() {
       const endTime = new Date(startTime)
       endTime.setHours(endTime.getHours() + durationH)
 
-      await prisma.fastingEntry.create({
+      await db.fastingEntry.create({
         data: {
           userId: user.id,
           startTime,
@@ -114,7 +115,7 @@ async function up() {
     }
   }
 
-  await prisma.user.create({
+  await db.user.create({
     data: {
       email: 'admin@example.com',
       password: await bcryptHash('admin'),
@@ -126,12 +127,12 @@ async function up() {
 }
 
 async function down() {
-  await prisma.calorieEntry.deleteMany()
-  await prisma.waterEntry.deleteMany()
-  await prisma.stepEntry.deleteMany()
-  await prisma.fastingEntry.deleteMany()
-  await prisma.profile.deleteMany()
-  await prisma.user.deleteMany()
+  await db.calorieEntry.deleteMany()
+  await db.waterEntry.deleteMany()
+  await db.stepEntry.deleteMany()
+  await db.fastingEntry.deleteMany()
+  await db.profile.deleteMany()
+  await db.user.deleteMany()
 }
 
 async function main() {

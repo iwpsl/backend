@@ -1,11 +1,11 @@
-import type { MealType } from '@prisma/client'
+import type { CalorieEntry, MealType } from '@prisma/client'
 import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
-import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
+import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { prisma } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -78,6 +78,11 @@ interface CalorieJournalResultData extends CalorieJournalData {
   id: number
 }
 
+function clean(res: CalorieEntry) {
+  const { userId, ...rest } = cleanUpdateAttrs(res)
+  return rest
+}
+
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')
@@ -130,21 +135,33 @@ export class CalorieController extends Controller {
     const { id, ...data } = body
 
     if (body.id) {
-      await prisma.calorieEntry.update({
-        where: { id },
-        data: {
-          userId,
-          ...data,
-        },
+      await db.calorieEntry.update({
+        where: { id, userId, deletedAt: null },
+        data,
       })
     } else {
-      await prisma.calorieEntry.create({
+      await db.calorieEntry.create({
         data: {
           userId,
           ...data,
         },
       })
     }
+
+    return ok()
+  }
+
+  @Delete('/journal/id/{id}')
+  public async deleteCalorieJournal(
+    @Request() req: AuthRequest,
+    @Path() id: number,
+  ): Api {
+    const userId = req.user!.id
+
+    await db.calorieEntry.update({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    })
 
     return ok()
   }
@@ -158,18 +175,18 @@ export class CalorieController extends Controller {
     const userId = req.user!.id
 
     const res = after
-      ? await prisma.calorieEntry.findMany({
+      ? await db.calorieEntry.findMany({
         take: 10,
         skip: 1,
         cursor: { id: after },
         where: { userId },
       })
-      : await prisma.calorieEntry.findMany({
+      : await db.calorieEntry.findMany({
         take: 10,
         where: { userId },
       })
 
-    return ok(res.map(({ userId, ...rest }) => rest))
+    return ok(res.map(clean))
   }
 
   /** Get detail of a journal entry. */
@@ -178,7 +195,7 @@ export class CalorieController extends Controller {
     @Request() req: AuthRequest,
     @Path() id: number,
   ): Api<CalorieJournalResultData> {
-    const res = await prisma.calorieEntry.findUnique({
+    const res = await db.calorieEntry.findUnique({
       where: {
         id,
         userId: req.user!.id,
@@ -188,7 +205,7 @@ export class CalorieController extends Controller {
     if (!res)
       return err(404, 'not-found')
 
-    return ok(res)
+    return ok(clean(res))
   }
 
   /** Get a list of entries by date. */
@@ -201,7 +218,7 @@ export class CalorieController extends Controller {
     const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
     const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
 
-    const res = await prisma.calorieEntry.findMany({
+    const res = await db.calorieEntry.findMany({
       where: {
         userId,
         date: {
@@ -220,7 +237,7 @@ export class CalorieController extends Controller {
         sugarGr: res.reduce((acc, curr) => acc + curr.sugarGr, 0),
         sodiumMg: res.reduce((acc, curr) => acc + curr.sodiumMg, 0),
       },
-      entries: res.map(({ userId, ...rest }) => rest),
+      entries: res.map(clean),
     })
   }
 }
