@@ -1,14 +1,14 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+CREATE TYPE "Role" AS ENUM ('user', 'admin');
 
 -- CreateEnum
-CREATE TYPE "AuthType" AS ENUM ('EMAIL', 'FIREBASE');
+CREATE TYPE "AuthType" AS ENUM ('email', 'firebase');
 
 -- CreateEnum
-CREATE TYPE "MealType" AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER', 'SNACK');
+CREATE TYPE "MealType" AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
 
 -- CreateEnum
-CREATE TYPE "VerificationAction" AS ENUM ('SIGNUP', 'RESET_PASSWORD');
+CREATE TYPE "VerificationAction" AS ENUM ('signup', 'resetPassword');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -16,7 +16,7 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "authType" "AuthType" NOT NULL,
     "password" TEXT,
-    "role" "Role" NOT NULL DEFAULT 'USER',
+    "role" "Role" NOT NULL DEFAULT 'user',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "tokenVersion" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -42,9 +42,34 @@ CREATE TABLE "Profile" (
 );
 
 -- CreateTable
+CREATE TABLE "CalorieTarget" (
+    "id" UUID NOT NULL,
+    "energyKcal" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "CalorieTarget_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CalorieHeader" (
+    "id" UUID NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "userId" UUID NOT NULL,
+    "targetId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "CalorieHeader_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "CalorieEntry" (
     "id" UUID NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date" TIMESTAMP(3) NOT NULL,
     "food" TEXT NOT NULL,
     "mealType" "MealType" NOT NULL,
     "energyKcal" INTEGER NOT NULL,
@@ -54,6 +79,7 @@ CREATE TABLE "CalorieEntry" (
     "sugarGr" INTEGER NOT NULL,
     "sodiumMg" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "headerId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -62,11 +88,24 @@ CREATE TABLE "CalorieEntry" (
 );
 
 -- CreateTable
+CREATE TABLE "WaterTarget" (
+    "id" UUID NOT NULL,
+    "amountMl" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "WaterTarget_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "WaterEntry" (
     "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "amountMl" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "targetId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -120,7 +159,7 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CalorieEntry_userId_date_food_key" ON "CalorieEntry"("userId", "date", "food");
+CREATE UNIQUE INDEX "CalorieHeader_userId_date_key" ON "CalorieHeader"("userId", "date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "WaterEntry_userId_date_key" ON "WaterEntry"("userId", "date");
@@ -135,10 +174,28 @@ CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("em
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CalorieTarget" ADD CONSTRAINT "CalorieTarget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalorieHeader" ADD CONSTRAINT "CalorieHeader_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CalorieHeader" ADD CONSTRAINT "CalorieHeader_targetId_fkey" FOREIGN KEY ("targetId") REFERENCES "CalorieTarget"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "CalorieEntry" ADD CONSTRAINT "CalorieEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "CalorieEntry" ADD CONSTRAINT "CalorieEntry_headerId_fkey" FOREIGN KEY ("headerId") REFERENCES "CalorieHeader"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WaterTarget" ADD CONSTRAINT "WaterTarget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "WaterEntry" ADD CONSTRAINT "WaterEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WaterEntry" ADD CONSTRAINT "WaterEntry_targetId_fkey" FOREIGN KEY ("targetId") REFERENCES "WaterTarget"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "StepEntry" ADD CONSTRAINT "StepEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

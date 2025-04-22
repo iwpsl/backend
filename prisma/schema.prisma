@@ -13,13 +13,13 @@ datasource db {
 }
 
 enum Role {
-  USER
-  ADMIN
+  user
+  admin
 }
 
 enum AuthType {
-  EMAIL
-  FIREBASE
+  email
+  firebase
 }
 
 model User {
@@ -27,15 +27,18 @@ model User {
   email        String   @unique
   authType     AuthType
   password     String?
-  role         Role     @default(USER)
+  role         Role     @default(user)
   isVerified   Boolean  @default(false)
   tokenVersion Int      @default(0)
 
-  profile Profile?
-  calorie CalorieEntry[]
-  water   WaterEntry[]
-  step    StepEntry[]
-  fasting FastingEntry[]
+  profile       Profile?
+  calorie       CalorieHeader[]
+  calorieEntry  CalorieEntry[]
+  calorieTarget CalorieTarget[]
+  water         WaterEntry[]
+  waterTarget   WaterTarget[]
+  step          StepEntry[]
+  fasting       FastingEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -58,15 +61,48 @@ model Profile {
 }
 
 enum MealType {
-  BREAKFAST
-  LUNCH
-  DINNER
-  SNACK
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+model CalorieTarget {
+  id             String @id @default(uuid()) @db.Uuid
+  energyKcal     Int
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  headers CalorieHeader[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model CalorieHeader {
+  id   String   @id @default(uuid()) @db.Uuid
+  date DateTime
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetId String        @db.Uuid
+  target   CalorieTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  entries CalorieEntry[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([userId, date])
 }
 
 model CalorieEntry {
   id             String   @id @default(uuid()) @db.Uuid
-  date           DateTime @default(now())
+  date           DateTime
   food           String
   mealType       MealType
   energyKcal     Int
@@ -79,11 +115,26 @@ model CalorieEntry {
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  headerId String        @db.Uuid
+  header   CalorieHeader @relation(fields: [headerId], references: [id], onDelete: Cascade)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+}
 
-  @@unique([userId, date, food])
+model WaterTarget {
+  id       String @id @default(uuid()) @db.Uuid
+  amountMl Int
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entries WaterEntry[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 }
 
 model WaterEntry {
@@ -93,6 +144,9 @@ model WaterEntry {
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetId String      @db.Uuid
+  target   WaterTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -131,8 +185,8 @@ model FastingEntry {
 }
 
 enum VerificationAction {
-  SIGNUP
-  RESET_PASSWORD
+  signup
+  resetPassword
 }
 
 model PendingVerification {

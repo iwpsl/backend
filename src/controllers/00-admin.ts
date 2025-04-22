@@ -17,14 +17,14 @@ type AdminProfileData = Array<{
 @Route('admin')
 @Tags('Admin')
 @Security('auth')
-@Middlewares(roleMiddleware('ADMIN'))
+@Middlewares(roleMiddleware('admin'))
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profiles')
   public async getProfiles(): Api<AdminProfileData> {
     const r = await db.user.findMany({
       where: {
-        role: { not: 'ADMIN' },
+        role: { not: 'admin' },
         profile: { isNot: null },
       },
       select: {

@@ -129,7 +129,7 @@ export class AuthController extends Controller {
         email,
         role,
         password: await bcryptHash(password),
-        authType: 'EMAIL',
+        authType: 'email',
       },
     })
     const token = jwtSign<AuthUser>({
@@ -149,7 +149,7 @@ export class AuthController extends Controller {
     if (isVerified)
       return err(403, 'forbidden')
 
-    const code = await genVerificationCode(email, 'SIGNUP')
+    const code = await genVerificationCode(email, 'signup')
     await sendMail(email, 'Signup', dedent`
       Use code below to finish signing up.
       Code: ${code}
@@ -169,7 +169,7 @@ export class AuthController extends Controller {
     const { email } = req.user!
     const { code } = body
 
-    const err = await verifyCode(email, code, 'SIGNUP')
+    const err = await verifyCode(email, code, 'signup')
     if (err)
       return err
 
@@ -192,7 +192,7 @@ export class AuthController extends Controller {
     let user = await db.user.findUnique({ where: { email } })
     if (!user)
       return err(401, 'invalid-credentials')
-    if (user.authType !== 'EMAIL')
+    if (user.authType !== 'email')
       return err(403, 'forbidden')
 
     const validPassword = await bcrypt.compare(password, user.password!)
@@ -228,7 +228,7 @@ export class AuthController extends Controller {
       update: {},
       create: {
         email,
-        authType: 'FIREBASE',
+        authType: 'firebase',
         isVerified: true,
       },
     })
@@ -265,10 +265,10 @@ export class AuthController extends Controller {
     const user = await db.user.findUnique({ where: { email } })
     if (!user)
       return err(404, 'not-found')
-    if (user.authType !== 'EMAIL')
+    if (user.authType !== 'email')
       return err(403, 'forbidden')
 
-    const code = await genVerificationCode(email, 'RESET_PASSWORD')
+    const code = await genVerificationCode(email, 'resetPassword')
     await sendMail(email, 'Password Reset', dedent`
       There was a request for password reset for your account.
       Code: ${code}
@@ -286,7 +286,7 @@ export class AuthController extends Controller {
   public async resetPasswordVerifyCode(@Body() body: ResetPasswordVerifyCodeData): Api<TokenData> {
     const { email, code } = body
 
-    const err = await verifyCode<TokenData>(email, code, 'RESET_PASSWORD')
+    const err = await verifyCode<TokenData>(email, code, 'resetPassword')
     if (err)
       return err
 

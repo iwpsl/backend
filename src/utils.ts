@@ -51,3 +51,7 @@ export async function sendMail(to: string, subject: string, text: string) {
     text,
   })
 }
+
+export function getDateOnly(date: Date) {
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}

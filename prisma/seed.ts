@@ -2,7 +2,7 @@ import process from 'node:process'
 import { faker } from '@faker-js/faker'
 import { MealType } from '@prisma/client'
 import { db } from '../src/db.js'
-import { bcryptHash } from '../src/utils.js'
+import { bcryptHash, getDateOnly } from '../src/utils.js'
 
 async function up() {
   faker.seed(420)
@@ -25,7 +25,7 @@ async function up() {
         email,
         password,
         isVerified: true,
-        authType: 'EMAIL',
+        authType: 'email',
       },
     })
 
@@ -41,14 +41,30 @@ async function up() {
       },
     })
 
+    const calorieTarget = await db.calorieTarget.create({
+      data: {
+        userId: user.id,
+        energyKcal: faker.number.int({ min: 1600, max: 3500 }),
+      },
+    })
+
     let len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
+      const header = await db.calorieHeader.create({
+        data: {
+          userId: user.id,
+          targetId: calorieTarget.id,
+          date: getDateOnly(date),
+        },
+      })
+
       await db.calorieEntry.create({
         data: {
           userId: user.id,
+          headerId: header.id,
           date,
           food: faker.food.dish(),
           mealType: faker.helpers.enumValue(MealType),
@@ -62,14 +78,22 @@ async function up() {
       })
     }
 
+    const waterTarget = await db.waterTarget.create({
+      data: {
+        userId: user.id,
+        amountMl: faker.number.int({ min: 1500, max: 5000 }),
+      },
+    })
+
     len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
-      const date = new Date()
+      const date = getDateOnly(new Date())
       date.setDate(date.getDate() - i)
 
       await db.waterEntry.create({
         data: {
           userId: user.id,
+          targetId: waterTarget.id,
           date,
           amountMl: faker.number.int({ min: 500, max: 4000 }),
         },
@@ -119,8 +143,8 @@ async function up() {
     data: {
       email: 'admin@example.com',
       password: await bcryptHash('admin'),
-      role: 'ADMIN',
-      authType: 'EMAIL',
+      role: 'admin',
+      authType: 'email',
       isVerified: true,
     },
   })

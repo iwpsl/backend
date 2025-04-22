@@ -13,8 +13,16 @@ interface WaterJournalData {
   amountMl: number
 }
 
+interface WaterTargetData {
+  amountMl: number
+}
+
 interface WaterJournalResultData extends WaterJournalData {
   id: UUID
+}
+
+interface DailyWaterJournalData extends WaterJournalData {
+  target: WaterTargetData
 }
 
 function clean(res: WaterEntry) {
@@ -25,7 +33,7 @@ function clean(res: WaterEntry) {
 @Route('water')
 @Tags('Water')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class WaterController extends Controller {
   /** Create or update a water intake entry. */
   @Post('/journal')
@@ -46,9 +54,18 @@ export class WaterController extends Controller {
         },
       })
     } else {
+      const latestTarget = await db.waterTarget.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (!latestTarget)
+        throw new Error('No target')
+
       await db.waterEntry.create({
         data: {
           userId,
+          targetId: latestTarget.id,
           date: dateOnly,
           ...data,
         },
@@ -58,6 +75,7 @@ export class WaterController extends Controller {
     return ok()
   }
 
+  /** Delete a journal entry. */
   @Delete('/journal/id/{id}')
   public async deleteWaterJournal(
     @Request() req: AuthRequest,
@@ -122,7 +140,7 @@ export class WaterController extends Controller {
   public async getWaterJournalByDate(
     @Request() req: AuthRequest,
     @Path() date: Date,
-  ): Api<WaterJournalResultData> {
+  ): Api<DailyWaterJournalData> {
     const userId = req.user!.id
     const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 
@@ -133,11 +151,57 @@ export class WaterController extends Controller {
           date: dateOnly,
         },
       },
+      include: {
+        target: true,
+      },
     })
 
     if (!res)
       return err(404, 'not-found')
 
-    return ok(clean(res))
+    return ok({
+      amountMl: res.amountMl,
+      date: res.date,
+      target: {
+        amountMl: res.target.amountMl,
+      },
+    })
+  }
+
+  /** Get latest target. */
+  @Get('/target/latest')
+  public async getLatestCalorieTarget(
+    @Request() req: AuthRequest,
+  ): Api<WaterTargetData> {
+    const userId = req.user!.id
+
+    const res = await db.waterTarget.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!res) {
+      return err(404, 'not-found')
+    }
+
+    return ok(res)
+  }
+
+  /** Insert a new target. */
+  @Post('/target')
+  public async createCalorieTarget(
+    @Request() req: AuthRequest,
+    @Body() body: WaterTargetData,
+  ): Api {
+    const userId = req.user!.id
+
+    await db.waterTarget.create({
+      data: {
+        userId,
+        ...body,
+      },
+    })
+
+    return ok()
   }
 }
