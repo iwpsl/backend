@@ -72,8 +72,8 @@ enum MealType {
 }
 
 model CalorieTarget {
-  id             String @id @default(uuid()) @db.Uuid
-  energyKcal     Int
+  id         String @id @default(uuid()) @db.Uuid
+  energyKcal Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -108,6 +108,7 @@ model CalorieEntry {
   id             String   @id @default(uuid()) @db.Uuid
   date           DateTime
   food           String
+  portion        Float
   mealType       MealType
   energyKcal     Int
   proteinGr      Int

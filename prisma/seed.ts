@@ -59,12 +59,15 @@ async function up() {
         },
       })
 
+      const portions = [1.0, 1.5, 2.0, 2.5, 3.0]
+
       await db.calorieEntry.create({
         data: {
           userId: user.id,
           headerId: header.id,
           date,
           food: faker.food.dish(),
+          portion: faker.helpers.arrayElement(portions),
           mealType: faker.helpers.enumValue(MealType),
           energyKcal: faker.number.int({ min: 100, max: 1200 }),
           carbohydrateGr: faker.number.int({ min: 10, max: 100 }),

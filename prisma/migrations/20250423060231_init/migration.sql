@@ -73,6 +73,7 @@ CREATE TABLE "CalorieEntry" (
     "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "food" TEXT NOT NULL,
+    "portion" DOUBLE PRECISION NOT NULL,
     "mealType" "MealType" NOT NULL,
     "energyKcal" INTEGER NOT NULL,
     "proteinGr" INTEGER NOT NULL,

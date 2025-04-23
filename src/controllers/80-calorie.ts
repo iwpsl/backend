@@ -67,6 +67,7 @@ interface CalorieJournalData extends CalorieData {
   id?: UUID
   date: Date
   food: string
+  portion: number
   mealType: MealType
 }
 
