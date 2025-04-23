@@ -170,7 +170,7 @@ export class WaterController extends Controller {
 
   /** Get latest target. */
   @Get('/target/latest')
-  public async getLatestCalorieTarget(
+  public async getLatestWaterTarget(
     @Request() req: AuthRequest,
   ): Api<WaterTargetData> {
     const userId = req.user!.id
@@ -189,7 +189,7 @@ export class WaterController extends Controller {
 
   /** Insert a new target. */
   @Post('/target')
-  public async createCalorieTarget(
+  public async createWaterTarget(
     @Request() req: AuthRequest,
     @Body() body: WaterTargetData,
   ): Api {
