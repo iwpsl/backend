@@ -281,12 +281,12 @@ export class CalorieController extends Controller {
 
     return ok({
       total: {
-        energyKcal: res.entries.reduce((acc, curr) => acc + curr.energyKcal, 0),
-        carbohydrateGr: res.entries.reduce((acc, curr) => acc + curr.carbohydrateGr, 0),
-        proteinGr: res.entries.reduce((acc, curr) => acc + curr.proteinGr, 0),
-        fatGr: res.entries.reduce((acc, curr) => acc + curr.fatGr, 0),
-        sugarGr: res.entries.reduce((acc, curr) => acc + curr.sugarGr, 0),
-        sodiumMg: res.entries.reduce((acc, curr) => acc + curr.sodiumMg, 0),
+        energyKcal: res.entries.reduce((acc, curr) => acc + (curr.energyKcal * curr.portion), 0),
+        carbohydrateGr: res.entries.reduce((acc, curr) => acc + (curr.carbohydrateGr * curr.portion), 0),
+        proteinGr: res.entries.reduce((acc, curr) => acc + (curr.proteinGr * curr.portion), 0),
+        fatGr: res.entries.reduce((acc, curr) => acc + (curr.fatGr * curr.portion), 0),
+        sugarGr: res.entries.reduce((acc, curr) => acc + (curr.sugarGr * curr.portion), 0),
+        sodiumMg: res.entries.reduce((acc, curr) => acc + (curr.sodiumMg * curr.portion), 0),
       },
       target: res.target,
       entries: res.entries,
