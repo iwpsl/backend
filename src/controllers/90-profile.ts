@@ -27,7 +27,7 @@ interface ProfileDataResult extends ProfileData {
 @Route('profile')
 @Tags('Profile')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class ProfileController extends Controller {
   /** Get profile for currently logged-in user. */
   @Get()

@@ -6,6 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
+import { getDateOnly } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -49,11 +50,7 @@ interface SearchData {
   products: ProductData[]
 }
 
-interface CalorieJournalData {
-  id?: UUID
-  date: Date
-  food: string
-  mealType: MealType
+interface CalorieData {
   energyKcal: number
   proteinGr: number
   carbohydrateGr: number
@@ -62,15 +59,20 @@ interface CalorieJournalData {
   sodiumMg: number
 }
 
+interface CalorieTargetData {
+  energyKcal: number
+}
+
+interface CalorieJournalData extends CalorieData {
+  id?: UUID
+  date: Date
+  food: string
+  mealType: MealType
+}
+
 interface DailyCalorieJournalData {
-  total: {
-    energyKcal: number
-    proteinGr: number
-    carbohydrateGr: number
-    fatGr: number
-    sugarGr: number
-    sodiumMg: number
-  }
+  total: CalorieData
+  target: CalorieTargetData
   entries: CalorieJournalData[]
 }
 
@@ -79,14 +81,54 @@ interface CalorieJournalResultData extends CalorieJournalData {
 }
 
 function clean(res: CalorieEntry) {
-  const { userId, ...rest } = cleanUpdateAttrs(res)
+  const { headerId, ...rest } = cleanUpdateAttrs(res)
   return rest
+}
+
+async function getOrCreateHeader(userId: UUID, date: Date, includeExtra: boolean) {
+  let res = await db.calorieHeader.findUnique({
+    where: {
+      userId_date: {
+        userId,
+        date,
+      },
+    },
+    include: {
+      entries: includeExtra,
+      target: includeExtra,
+    },
+  })
+
+  if (!res) {
+    const latestTarget = await db.calorieTarget.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!latestTarget) {
+      return undefined
+    }
+
+    res = await db.calorieHeader.create({
+      data: {
+        userId,
+        date,
+        targetId: latestTarget.id,
+      },
+      include: {
+        entries: includeExtra,
+        target: includeExtra,
+      },
+    })
+  }
+
+  return res
 }
 
 @Route('calorie')
 @Tags('Calorie')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class CalorieController extends Controller {
   /** Get calorie data from product barcode. */
   @Get('/product/code/{code}')
@@ -140,9 +182,15 @@ export class CalorieController extends Controller {
         data,
       })
     } else {
+      const header = await getOrCreateHeader(userId, getDateOnly(data.date), false)
+
+      if (!header)
+        throw new Error('No target')
+
       await db.calorieEntry.create({
         data: {
           userId,
+          headerId: header.id,
           ...data,
         },
       })
@@ -151,6 +199,7 @@ export class CalorieController extends Controller {
     return ok()
   }
 
+  /** Delete a journal entry. */
   @Delete('/journal/id/{id}')
   public async deleteCalorieJournal(
     @Request() req: AuthRequest,
@@ -217,29 +266,66 @@ export class CalorieController extends Controller {
     @Path() date: Date,
   ): Api<DailyCalorieJournalData> {
     const userId = req.user!.id
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+    const dateOnly = getDateOnly(date)
 
-    const res = await db.calorieEntry.findMany({
-      where: {
-        userId,
-        date: {
-          gte: startOfDay,
-          lt: endOfDay,
-        },
-      },
-    })
+    const res = await getOrCreateHeader(userId, dateOnly, true)
+
+    if (!res) {
+      return ok({
+        total: { carbohydrateGr: 0, energyKcal: 0, fatGr: 0, proteinGr: 0, sodiumMg: 0, sugarGr: 0 },
+        target: { energyKcal: 0 },
+        entries: [],
+      })
+    }
 
     return ok({
       total: {
-        energyKcal: res.reduce((acc, curr) => acc + curr.energyKcal, 0),
-        carbohydrateGr: res.reduce((acc, curr) => acc + curr.carbohydrateGr, 0),
-        proteinGr: res.reduce((acc, curr) => acc + curr.proteinGr, 0),
-        fatGr: res.reduce((acc, curr) => acc + curr.fatGr, 0),
-        sugarGr: res.reduce((acc, curr) => acc + curr.sugarGr, 0),
-        sodiumMg: res.reduce((acc, curr) => acc + curr.sodiumMg, 0),
+        energyKcal: res.entries.reduce((acc, curr) => acc + curr.energyKcal, 0),
+        carbohydrateGr: res.entries.reduce((acc, curr) => acc + curr.carbohydrateGr, 0),
+        proteinGr: res.entries.reduce((acc, curr) => acc + curr.proteinGr, 0),
+        fatGr: res.entries.reduce((acc, curr) => acc + curr.fatGr, 0),
+        sugarGr: res.entries.reduce((acc, curr) => acc + curr.sugarGr, 0),
+        sodiumMg: res.entries.reduce((acc, curr) => acc + curr.sodiumMg, 0),
       },
-      entries: res.map(clean),
+      target: res.target,
+      entries: res.entries,
     })
+  }
+
+  /** Get latest target. */
+  @Get('/target/latest')
+  public async getLatestCalorieTarget(
+    @Request() req: AuthRequest,
+  ): Api<CalorieTargetData> {
+    const userId = req.user!.id
+
+    const res = await db.calorieTarget.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!res) {
+      return err(404, 'not-found')
+    }
+
+    return ok(res)
+  }
+
+  /** Insert a new target. */
+  @Post('/target')
+  public async createCalorieTarget(
+    @Request() req: AuthRequest,
+    @Body() body: CalorieTargetData,
+  ): Api {
+    const userId = req.user!.id
+
+    await db.calorieTarget.create({
+      data: {
+        userId,
+        ...body,
+      },
+    })
+
+    return ok()
   }
 }

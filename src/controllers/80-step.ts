@@ -19,7 +19,7 @@ interface StepJournalResultData extends StepJournalData {
 @Route('step')
 @Tags('Step')
 @Security('auth')
-@Middlewares(roleMiddleware('USER'), verifiedMiddleware)
+@Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class StepController extends Controller {
   /** Create or update a journal entry. */
   @Post('/journal')
