@@ -1,5 +1,6 @@
-import type { Role, VerificationAction } from '@prisma/client'
+import type { VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api.js'
+import type { Role } from '../db.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
 import bcrypt from 'bcryptjs'

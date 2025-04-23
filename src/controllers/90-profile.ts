@@ -1,4 +1,5 @@
 import type { Api } from '../api.js'
+import type { Gender } from '../db.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -13,10 +14,9 @@ import { baseUrl, pathFromRoot } from '../utils.js'
 interface ProfileData {
   name: string
   dateOfBirth: Date
-  gender: string
+  gender: Gender
   heightCm: number
   weightKg: number
-  bloodType: string
 }
 
 interface ProfileDataResult extends ProfileData {

@@ -5,6 +5,9 @@ CREATE TYPE "Role" AS ENUM ('user', 'admin');
 CREATE TYPE "AuthType" AS ENUM ('email', 'firebase');
 
 -- CreateEnum
+CREATE TYPE "Gender" AS ENUM ('male', 'female');
+
+-- CreateEnum
 CREATE TYPE "MealType" AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
 
 -- CreateEnum
@@ -30,10 +33,9 @@ CREATE TABLE "Profile" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "dateOfBirth" TIMESTAMP(3) NOT NULL,
-    "gender" TEXT NOT NULL,
+    "gender" "Gender" NOT NULL,
     "heightCm" INTEGER NOT NULL,
     "weightKg" INTEGER NOT NULL,
-    "bloodType" TEXT NOT NULL,
     "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

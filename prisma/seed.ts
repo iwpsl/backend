@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { MealType } from '@prisma/client'
+import { Gender, MealType } from '@prisma/client'
 import { db } from '../src/db.js'
 import { bcryptHash, getDateOnly } from '../src/utils.js'
 
@@ -17,7 +17,6 @@ async function up() {
   ]
 
   const password = await bcryptHash('test')
-  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-']
 
   for (const email of emails) {
     const user = await db.user.create({
@@ -34,10 +33,9 @@ async function up() {
         userId: user.id,
         name: faker.person.fullName(),
         dateOfBirth: faker.date.birthdate(),
-        gender: faker.person.sex(),
+        gender: faker.helpers.enumValue(Gender),
         heightCm: faker.number.int({ min: 150, max: 180 }),
         weightKg: faker.number.int({ min: 50, max: 100 }),
-        bloodType: faker.helpers.arrayElement(bloodTypes),
       },
     })
 

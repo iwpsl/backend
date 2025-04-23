@@ -44,14 +44,18 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+enum Gender {
+  male
+  female
+}
+
 model Profile {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   dateOfBirth DateTime
-  gender      String
+  gender      Gender
   heightCm    Int
   weightKg    Int
-  bloodType   String
 
   userId String @unique @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

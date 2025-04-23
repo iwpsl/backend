@@ -11,7 +11,6 @@ type AdminProfileData = Array<{
   gender: string
   heightCm: number
   weightKg: number
-  bloodType: string
 }>
 
 @Route('admin')
@@ -36,7 +35,6 @@ export class AdminController extends Controller {
             gender: true,
             heightCm: true,
             weightKg: true,
-            bloodType: true,
           },
         },
       },
