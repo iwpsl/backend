@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/index.js",
+    "start:worker": "node dist/src/worker/worker.js",
     "dev": "concurrently \"tsx watch src/index.ts\" \"tsx watch src/worker/worker.ts\"",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
