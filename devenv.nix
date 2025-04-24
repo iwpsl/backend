@@ -46,6 +46,10 @@
         ALTER ROLE database WITH CREATEDB;
       '';
     };
+
+    redis = {
+      enable = true;
+    };
   };
 
   processes = {

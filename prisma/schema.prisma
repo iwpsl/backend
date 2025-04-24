@@ -175,11 +175,22 @@ model StepEntry {
   @@unique([userId, date])
 }
 
+enum FastingCategory {
+  fast16eat08
+  fast18eat06
+  fast14eat10
+  fast12eat12
+  fast13eat11
+  fast15eat09
+  custom
+}
+
 model FastingEntry {
-  id        String   @id @default(uuid()) @db.Uuid
-  startTime DateTime
-  endTime   DateTime
-  durationH Float
+  id         String          @id @default(uuid()) @db.Uuid
+  category   FastingCategory
+  startTime  DateTime
+  endTime    DateTime
+  finishedAt DateTime?
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
