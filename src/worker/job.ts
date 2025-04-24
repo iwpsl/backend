@@ -2,14 +2,13 @@ import type { UUID } from '../api.js'
 import { db } from '../db.js'
 
 export interface JobDataMapping {
-  fastingFinisher: UUID
+  fastingFinisher: { id: UUID, finishedAt: Date }
 }
 
 export type JobId = keyof JobDataMapping
 
 export interface JobInstance<Id extends JobId> {
   id: Id
-  at: Date
   data: JobDataMapping[Id]
 }
 
@@ -18,10 +17,10 @@ type JobHandlers = {
 }
 
 export const jobHandlers: JobHandlers = {
-  async fastingFinisher({ at, data }) {
+  async fastingFinisher({ data }) {
     await db.fastingEntry.update({
-      where: { id: data },
-      data: { finishedAt: at },
+      where: { id: data.id },
+      data: { finishedAt: data.finishedAt },
     })
   },
 }

@@ -35,7 +35,11 @@ export class FastingController extends Controller {
       },
     })
 
-    await enqueueWork(res.endTime, 'fastingFinisher', res.id)
+    await enqueueWork(
+      res.endTime,
+      'fastingFinisher',
+      { id: res.id, finishedAt: res.endTime },
+    )
 
     return ok()
   }
