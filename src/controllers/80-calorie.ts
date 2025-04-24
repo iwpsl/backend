@@ -95,7 +95,9 @@ async function getOrCreateHeader(userId: UUID, date: Date, includeExtra: boolean
       },
     },
     include: {
-      entries: includeExtra,
+      entries: includeExtra
+        ? { where: { deletedAt: null } }
+        : false,
       target: includeExtra,
     },
   })
