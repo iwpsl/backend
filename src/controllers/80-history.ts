@@ -1,99 +1,115 @@
-import { Controller, Get, Path, Query, Route, Tags } from 'tsoa'
-import { prisma } from '../utils.js'
+import type { AuthRequest } from '../middleware/auth.ts'
+import { PrismaClient } from '@prisma/client'
+import {
+  Controller,
+  Delete,
+  Get,
+  Path,
+  Request,
+  Route,
+  Security,
+  Tags,
+} from 'tsoa'
 
-// === INTERFACES (instead of Prisma models) ===
+const prisma = new PrismaClient()
 
-interface CalorieHistory {
-  type: 'CALORIE'
+interface HistoryItem {
   id: number
+  type: 'calorie' | 'water' | 'step'
   date: Date
-  food: string
-  mealType: string
-  energyKcal: number
+  details: any
 }
-
-interface WaterHistory {
-  type: 'WATER'
-  id: number
-  date: Date
-  amountMl: number
-}
-
-interface StepHistory {
-  type: 'STEP'
-  id: number
-  date: Date
-  steps: number
-}
-
-type HistoryItem = CalorieHistory | WaterHistory | StepHistory
-
-interface UserHistoryResponse {
-  userId: string
-  history: HistoryItem[]
-}
-
-// === CONTROLLER ===
 
 @Route('user-history')
-@Tags('History')
+@Tags('User History')
 export class HistoryController extends Controller {
   /**
-   * Get unified user history: calories, water, and steps
+   * Get full history (calorie, water, steps) for the logged-in user
    */
-  @Get('{userId}')
-  public async getUserHistory(
-    @Path() userId: string,
-    @Query() startDate?: string,
-    @Query() endDate?: string,
-  ): Promise<UserHistoryResponse> {
-    const dateFilter: { gte?: Date, lte?: Date } = {}
-    if (startDate)
-      dateFilter.gte = new Date(startDate)
-    if (endDate)
-      dateFilter.lte = new Date(endDate)
+  @Get('/')
+  @Security('auth')
+  public async getAllHistory(@Request() req: AuthRequest): Promise<HistoryItem[]> {
+    const userId = req.user!.id
 
     const [calories, waters, steps] = await Promise.all([
-      prisma.calorieEntry.findMany({
-        where: { userId, ...(startDate || endDate ? { date: dateFilter } : {}) },
-        orderBy: { date: 'desc' },
-      }),
-      prisma.waterEntry.findMany({
-        where: { userId, ...(startDate || endDate ? { date: dateFilter } : {}) },
-        orderBy: { date: 'desc' },
-      }),
-      prisma.stepEntry.findMany({
-        where: { userId, ...(startDate || endDate ? { date: dateFilter } : {}) },
-        orderBy: { date: 'desc' },
-      }),
+      prisma.calorieEntry.findMany({ where: { userId } }),
+      prisma.waterEntry.findMany({ where: { userId } }),
+      prisma.stepEntry.findMany({ where: { userId } }),
     ])
 
-    const history: HistoryItem[] = [
-      ...calories.map<CalorieHistory>(c => ({
-        type: 'CALORIE',
-        id: c.id,
-        date: c.date,
-        food: c.food,
-        mealType: c.mealType,
-        energyKcal: c.energyKcal,
-      })),
-      ...waters.map<WaterHistory>(w => ({
-        type: 'WATER',
-        id: w.id,
-        date: w.date,
-        amountMl: w.amountMl,
-      })),
-      ...steps.map<StepHistory>(s => ({
-        type: 'STEP',
-        id: s.id,
-        date: s.date,
-        steps: s.steps,
-      })),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    const calorieHistory: HistoryItem[] = calories.map(entry => ({
+      id: entry.id,
+      type: 'calorie',
+      date: entry.date,
+      details: entry,
+    }))
 
-    return {
-      userId,
-      history,
+    const waterHistory: HistoryItem[] = waters.map(entry => ({
+      id: entry.id,
+      type: 'water',
+      date: entry.date,
+      details: entry,
+    }))
+
+    const stepHistory: HistoryItem[] = steps.map(entry => ({
+      id: entry.id,
+      type: 'step',
+      date: entry.date,
+      details: entry,
+    }))
+
+    const fullHistory = [...calorieHistory, ...waterHistory, ...stepHistory]
+    return fullHistory.sort((a, b) => b.date.getTime() - a.date.getTime())
+  }
+
+  /**
+   * Delete a single history entry by ID (calorie, water, or step)
+   */
+  @Delete('/{id}')
+  @Security('auth')
+  public async deleteHistoryById(
+    @Request() req: AuthRequest,
+    @Path() id: number,
+  ): Promise<void> {
+    const userId = req.user!.id
+
+    const [calorie, water, step] = await Promise.all([
+      prisma.calorieEntry.findFirst({ where: { id, userId } }),
+      prisma.waterEntry.findFirst({ where: { id, userId } }),
+      prisma.stepEntry.findFirst({ where: { id, userId } }),
+    ])
+
+    if (calorie) {
+      await prisma.calorieEntry.delete({ where: { id } })
+      return
     }
+
+    if (water) {
+      await prisma.waterEntry.delete({ where: { id } })
+      return
+    }
+
+    if (step) {
+      await prisma.stepEntry.delete({ where: { id } })
+      return
+    }
+
+    this.setStatus(404)
+    throw new Error('History entry not found')
+  }
+
+  /**
+   * Delete all history entries (calorie, water, step) for the logged-in user
+   */
+  @Delete('/')
+  @Security('auth')
+  public async deleteAllHistory(@Request() req: AuthRequest): Promise<void> {
+    const userId = req.user!.id
+
+    await Promise.all([
+      prisma.calorieEntry.deleteMany({ where: { userId } }),
+      prisma.waterEntry.deleteMany({ where: { userId } }),
+      prisma.stepEntry.deleteMany({ where: { userId } }),
+    ])
   }
 }
