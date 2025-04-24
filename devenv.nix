@@ -14,6 +14,7 @@
 
   packages = with pkgs; [
     nodePackages.prisma
+    mitmproxy
   ];
 
   git-hooks.hooks = {
@@ -56,6 +57,10 @@
     express-prod.exec = ''
       pnpm build
       pnpm start
+    '';
+
+    mitmproxy.exec = ''
+      mitmweb --mode reverse:http://localhost:3001 --listen-port 8080
     '';
   };
 }
