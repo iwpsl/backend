@@ -6,6 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
+import { getDateOnly } from '../utils.js'
 
 interface WaterJournalData {
   id?: UUID
@@ -43,7 +44,7 @@ export class WaterController extends Controller {
   ): Api {
     const userId = req.user!.id
     const { id, date, ...data } = body
-    const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    const dateOnly = getDateOnly(date)
 
     if (body.id) {
       await db.waterEntry.update({
@@ -142,7 +143,7 @@ export class WaterController extends Controller {
     @Path() date: Date,
   ): Api<DailyWaterJournalData> {
     const userId = req.user!.id
-    const dateOnly = new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+    const dateOnly = getDateOnly(date)
 
     const res = await db.waterEntry.findUnique({
       where: {
