@@ -1,8 +1,10 @@
 import type { UUID } from '../api.js'
 import { db } from '../db.js'
+import { df } from '../utils.js'
 
 export interface JobDataMapping {
   fastingFinisher: { id: UUID, finishedAt: Date }
+  log: string
 }
 
 export type JobId = keyof JobDataMapping
@@ -13,14 +15,19 @@ export interface JobInstance<Id extends JobId> {
 }
 
 type JobHandlers = {
-  [Id in JobId]: (instance: JobInstance<Id>) => Promise<void>
+  [Id in JobId]: (data: JobDataMapping[Id]) => Promise<void>
 }
 
 export const jobHandlers: JobHandlers = {
-  async fastingFinisher({ data }) {
+  async fastingFinisher({ id, finishedAt }) {
     await db.fastingEntry.update({
-      where: { id: data.id },
-      data: { finishedAt: data.finishedAt },
+      where: { id },
+      data: { finishedAt },
     })
+  },
+
+  async log(msg) {
+    const date = df.format(new Date(), 'yyyy-MM-dd HH:mm:ss:SSSS')
+    console.log(`${date} ${msg}`)
   },
 }

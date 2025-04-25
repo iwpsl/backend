@@ -50,6 +50,10 @@
 
     redis = {
       enable = true;
+      extraConfig = ''
+        appendonly yes
+        appendfsync everysec
+      '';
     };
   };
 
@@ -69,7 +73,7 @@
     '';
 
     mitmproxy.exec = ''
-      mitmweb --mode reverse:http://localhost:3001 --listen-port 8080
+      mitmweb --mode reverse:http://localhost:3001 --listen-port 8080 --no-web-open-browser
     '';
   };
 }
