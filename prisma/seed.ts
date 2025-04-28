@@ -17,13 +17,11 @@ async function up() {
     'lintangharis18@gmail.com',
   ]
 
-  const password = await bcryptHash('test')
-
   for (const email of emails) {
     const user = await db.user.create({
       data: {
         email,
-        password,
+        password: await bcryptHash('test'),
         isVerified: true,
         authType: 'email',
       },
