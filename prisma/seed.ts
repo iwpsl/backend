@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { Gender, MealType } from '@prisma/client'
+import { FastingCategory, Gender, MealType } from '@prisma/client'
 import { db } from '../src/db.js'
 import { bcryptHash, getDateOnly } from '../src/utils.js'
 
@@ -131,10 +131,10 @@ async function up() {
 
       await db.fastingEntry.create({
         data: {
+          category: faker.helpers.enumValue(FastingCategory),
           userId: user.id,
           startTime,
           endTime,
-          durationH,
         },
       })
     }

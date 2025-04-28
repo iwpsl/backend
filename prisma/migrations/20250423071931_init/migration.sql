@@ -11,6 +11,9 @@ CREATE TYPE "Gender" AS ENUM ('male', 'female');
 CREATE TYPE "MealType" AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
 
 -- CreateEnum
+CREATE TYPE "FastingCategory" AS ENUM ('fast16eat08', 'fast18eat06', 'fast14eat10', 'fast12eat12', 'fast13eat11', 'fast15eat09', 'custom');
+
+-- CreateEnum
 CREATE TYPE "VerificationAction" AS ENUM ('signup', 'resetPassword');
 
 -- CreateTable
@@ -132,9 +135,10 @@ CREATE TABLE "StepEntry" (
 -- CreateTable
 CREATE TABLE "FastingEntry" (
     "id" UUID NOT NULL,
+    "category" "FastingCategory" NOT NULL,
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3) NOT NULL,
-    "durationH" DOUBLE PRECISION NOT NULL,
+    "finishedAt" TIMESTAMP(3),
     "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

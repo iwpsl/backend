@@ -2,6 +2,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import bcrypt from 'bcryptjs'
+import * as dateFns from 'date-fns'
 import dotenv from 'dotenv'
 import jwt from 'jsonwebtoken'
 import nodemailer from 'nodemailer'
@@ -55,3 +56,5 @@ export async function sendMail(to: string, subject: string, text: string) {
 export function getDateOnly(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
+
+export const df = dateFns

@@ -47,6 +47,14 @@
         ALTER ROLE database WITH CREATEDB;
       '';
     };
+
+    redis = {
+      enable = true;
+      extraConfig = ''
+        appendonly yes
+        appendfsync everysec
+      '';
+    };
   };
 
   processes = {
@@ -59,8 +67,13 @@
       pnpm start
     '';
 
+    worker-prod.exec = ''
+      pnpm build
+      pnpm start:worker
+    '';
+
     mitmproxy.exec = ''
-      mitmweb --mode reverse:http://localhost:3001 --listen-port 8080
+      mitmweb --mode reverse:http://localhost:3001 --listen-port 8080 --no-web-open-browser
     '';
   };
 }
