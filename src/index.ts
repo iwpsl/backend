@@ -7,6 +7,7 @@ import { dataMiddleware } from './middleware/data.js'
 import { errorMiddleware } from './middleware/error.js'
 import { RegisterRoutes } from './routes/routes.js'
 import { isDev, pathFromRoot, port } from './utils.js'
+import { scheduleWork } from './worker/queue.js'
 
 dotenv.config()
 
@@ -30,3 +31,8 @@ app.use(errorMiddleware)
 app.listen(port, () => {
   console.log(`Listening to port ${port}`)
 })
+
+scheduleWork('0 0 * * *', 'cleanupCalorieHeader')
+scheduleWork('0 1 * * *', 'cleanupCalorieTarget')
+
+scheduleWork('0 1 * * *', 'cleanupWaterTarget')

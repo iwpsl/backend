@@ -8,6 +8,6 @@ export async function enqueueWork<Id extends JobId>(at: Date, id: Id, data: JobD
   await queue.add(id, { id, data }, { delay })
 }
 
-export async function scheduleWork<Id extends JobId>(every: number, id: Id) {
-  await queue.upsertJobScheduler(id, { every })
+export async function scheduleWork<Id extends JobId>(pattern: string, id: Id) {
+  await queue.upsertJobScheduler(id, { pattern })
 }
