@@ -14,7 +14,7 @@ export function jwtVerify<T extends Record<string, any>>(token: string) {
 }
 
 export function bcryptHash(input: string) {
-  return bcrypt.hash(input, process.env.BCRYPT_SALT as string)
+  return bcrypt.hash(input, 12)
 }
 
 export const bcryptCompare = bcrypt.compare
