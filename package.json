@@ -31,6 +31,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@bull-board/api": "^6.9.2",
+    "@bull-board/express": "^6.9.2",
     "@prisma/client": "5.22.0",
     "@scalar/express-api-reference": "^0.6.3",
     "@tsoa/runtime": "^6.6.0",
