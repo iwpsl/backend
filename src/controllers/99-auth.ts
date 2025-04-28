@@ -3,13 +3,13 @@ import type { Api, ApiRes } from '../api.js'
 import type { Role } from '../db.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
-import bcrypt from 'bcryptjs'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
+import { bcryptCompare, bcryptHash, jwtSign, jwtVerify } from '../crypto.js'
 import { db } from '../db.js'
-import { firebaseAuth } from '../firebase/index.js'
-import { bcryptHash, jwtSign, jwtVerify, sendMail } from '../utils.js'
+import { firebaseAuth } from '../firebase/firebase.js'
+import { sendMail } from '../mail.js'
 
 interface SignupData {
   email: string
@@ -79,7 +79,7 @@ async function verifyCode<T = {}>(email: string, code: string, action: Verificat
     return err(410, 'expired-code')
   }
 
-  if (!await bcrypt.compare(code, pending.code))
+  if (!await bcryptCompare(code, pending.code))
     return err(401, 'invalid-code')
 }
 
@@ -95,7 +95,7 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   if (!pending)
     return err(404, 'not-found')
 
-  const validCode = await bcrypt.compare(jwt.code, pending.code)
+  const validCode = await bcryptCompare(jwt.code, pending.code)
   if (!validCode)
     return err(401, 'invalid-code')
 
@@ -196,7 +196,7 @@ export class AuthController extends Controller {
     if (user.authType !== 'email')
       return err(403, 'forbidden')
 
-    const validPassword = await bcrypt.compare(password, user.password!)
+    const validPassword = await bcryptCompare(password, user.password!)
     if (!validPassword)
       return err(401, 'invalid-credentials')
 

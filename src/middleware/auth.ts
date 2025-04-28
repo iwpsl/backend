@@ -1,8 +1,8 @@
 import type { User } from '@prisma/client'
 import type { NextFunction, Request, Response } from 'express'
 import { err } from '../api.js'
+import { jwtVerify } from '../crypto.js'
 import { db } from '../db.js'
-import { jwtVerify } from '../utils.js'
 
 export interface AuthRequest extends Request {
   user?: User
