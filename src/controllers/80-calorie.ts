@@ -322,12 +322,21 @@ export class CalorieController extends Controller {
   ): Api {
     const userId = req.user!.id
 
-    await db.calorieTarget.create({
+    const target = await db.calorieTarget.create({
       data: {
         userId,
         ...body,
       },
     })
+
+    const todayHeader = await getOrCreateHeader(userId, new Date(), false)
+
+    if (todayHeader) {
+      await db.calorieHeader.update({
+        where: { id: todayHeader.id },
+        data: { targetId: target.id },
+      })
+    }
 
     return ok()
   }

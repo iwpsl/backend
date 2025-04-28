@@ -196,12 +196,28 @@ export class WaterController extends Controller {
   ): Api {
     const userId = req.user!.id
 
-    await db.waterTarget.create({
+    const target = await db.waterTarget.create({
       data: {
         userId,
         ...body,
       },
     })
+
+    const todayEntry = await db.waterEntry.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: getDateOnly(new Date()),
+        },
+      },
+    })
+
+    if (todayEntry) {
+      await db.waterEntry.update({
+        where: { id: todayEntry.id },
+        data: { targetId: target.id },
+      })
+    }
 
     return ok()
   }
