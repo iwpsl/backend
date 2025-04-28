@@ -63,7 +63,7 @@ async function genVerificationCode(email: string, action: VerificationAction) {
 }
 
 type VerifyResult<T> = Promise<ApiRes<T> | undefined>
-const tenMinutes = 10 * 60 * 100
+const tenMinutes = 10 * 60 * 1000
 
 async function verifyCode<T = {}>(email: string, code: string, action: VerificationAction): VerifyResult<T> {
   const pending = await db.pendingVerification.findUnique({ where: { email } })
