@@ -67,11 +67,13 @@ const tenMinutes = 10 * 60 * 1000
 
 async function verifyCode<T = {}>(email: string, code: string, action: VerificationAction): VerifyResult<T> {
   const pending = await db.pendingVerification.findUnique({ where: { email } })
-  if (!pending)
+  if (!pending) {
     return err(404, 'not-found')
+  }
 
-  if (pending.action !== action)
+  if (pending.action !== action) {
     return err(410, 'invalid-action')
+  }
 
   const timeSinceRequested = Date.now() - pending.updatedAt.getTime()
   if (timeSinceRequested > tenMinutes) {
@@ -79,25 +81,30 @@ async function verifyCode<T = {}>(email: string, code: string, action: Verificat
     return err(410, 'expired-code')
   }
 
-  if (!await bcryptCompare(code, pending.code))
+  if (!await bcryptCompare(code, pending.code)) {
     return err(401, 'invalid-code')
+  }
 }
 
 async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T> {
   const jwt = jwtVerify<ResetPasswordVerifyCodeData>(token)
-  if (!jwt)
+  if (!jwt) {
     return err(401, 'invalid-code')
+  }
 
-  if (email !== jwt.email)
+  if (email !== jwt.email) {
     return err(403, 'forbidden')
+  }
 
   const pending = await db.pendingVerification.findUnique({ where: { email } })
-  if (!pending)
+  if (!pending) {
     return err(404, 'not-found')
+  }
 
   const validCode = await bcryptCompare(jwt.code, pending.code)
-  if (!validCode)
+  if (!validCode) {
     return err(401, 'invalid-code')
+  }
 
   await db.pendingVerification.delete({ where: { email } })
 }
@@ -147,8 +154,9 @@ export class AuthController extends Controller {
   public async signupSendCode(@Request() req: AuthRequest): Api {
     const { email, isVerified } = req.user!
 
-    if (isVerified)
+    if (isVerified) {
       return err(403, 'forbidden')
+    }
 
     const code = await genVerificationCode(email, 'signup')
     await sendMail(email, 'Signup', dedent`
@@ -171,8 +179,9 @@ export class AuthController extends Controller {
     const { code } = body
 
     const err = await verifyCode(email, code, 'signup')
-    if (err)
+    if (err) {
       return err
+    }
 
     const { id } = req.user!
     await db.user.update({
@@ -191,14 +200,17 @@ export class AuthController extends Controller {
     const { email, password } = body
 
     let user = await db.user.findUnique({ where: { email } })
-    if (!user)
+    if (!user) {
       return err(401, 'invalid-credentials')
-    if (user.authType !== 'email')
+    }
+    if (user.authType !== 'email') {
       return err(403, 'forbidden')
+    }
 
     const validPassword = await bcryptCompare(password, user.password!)
-    if (!validPassword)
+    if (!validPassword) {
       return err(401, 'invalid-credentials')
+    }
 
     user = await db.user.update({
       where: { email },
@@ -221,8 +233,9 @@ export class AuthController extends Controller {
     const { idToken } = body
 
     const { email } = await firebaseAuth.verifyIdToken(idToken)
-    if (!email)
+    if (!email) {
       return err(401, 'invalid-credentials')
+    }
 
     const user = await db.user.upsert({
       where: { email },
@@ -264,10 +277,12 @@ export class AuthController extends Controller {
     const { email } = body
 
     const user = await db.user.findUnique({ where: { email } })
-    if (!user)
+    if (!user) {
       return err(404, 'not-found')
-    if (user.authType !== 'email')
+    }
+    if (user.authType !== 'email') {
       return err(403, 'forbidden')
+    }
 
     const code = await genVerificationCode(email, 'resetPassword')
     await sendMail(email, 'Password Reset', dedent`
@@ -288,8 +303,9 @@ export class AuthController extends Controller {
     const { email, code } = body
 
     const err = await verifyCode<TokenData>(email, code, 'resetPassword')
-    if (err)
+    if (err) {
       return err
+    }
 
     const token = jwtSign(body, { expiresIn: tenMinutes })
     return ok({ token })
@@ -304,8 +320,9 @@ export class AuthController extends Controller {
     const { email, password, token } = body
 
     const err = await verifyToken(token, email)
-    if (err)
+    if (err) {
       return err
+    }
 
     await db.user.update({
       where: { email },

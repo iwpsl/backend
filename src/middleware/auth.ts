@@ -18,19 +18,23 @@ class AuthError extends Error {}
 export async function expressAuthentication(req: AuthRequest, securityName: string, _scopes?: string[]) {
   if (securityName === 'auth') {
     const token = req.header('Authorization')?.split(' ')[1]
-    if (!token)
+    if (!token) {
       throw new AuthError()
+    }
 
     try {
       const jwtUser = jwtVerify<AuthUser>(token)
-      if (!jwtUser)
+      if (!jwtUser) {
         throw new AuthError()
+      }
 
       const user = await db.user.findUnique({ where: { id: jwtUser.id } })
-      if (!user)
+      if (!user) {
         throw new AuthError()
-      if (jwtUser.tokenVersion !== user.tokenVersion)
+      }
+      if (jwtUser.tokenVersion !== user.tokenVersion) {
         throw new AuthError()
+      }
 
       return user
     } catch {

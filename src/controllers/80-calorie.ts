@@ -139,8 +139,9 @@ export class CalorieController extends Controller {
     const res = await fetch(`${apiUrl}/product/${code}`)
     const data = await res.json() as OffProductData
 
-    if (data.status === 0)
+    if (data.status === 0) {
       return err(500, 'internal-server-error')
+    }
 
     return ok({
       code: data.product.code,
@@ -187,8 +188,9 @@ export class CalorieController extends Controller {
     } else {
       const header = await getOrCreateHeader(userId, getDateOnly(data.date), false)
 
-      if (!header)
+      if (!header) {
         throw new Error('No target')
+      }
 
       await db.calorieEntry.create({
         data: {
@@ -256,8 +258,9 @@ export class CalorieController extends Controller {
       },
     })
 
-    if (!res)
+    if (!res) {
       return err(404, 'not-found')
+    }
 
     return ok(clean(res))
   }

@@ -60,8 +60,9 @@ export class WaterController extends Controller {
         orderBy: { createdAt: 'desc' },
       })
 
-      if (!latestTarget)
+      if (!latestTarget) {
         throw new Error('No target')
+      }
 
       await db.waterEntry.create({
         data: {
@@ -130,8 +131,9 @@ export class WaterController extends Controller {
       },
     })
 
-    if (!res)
+    if (!res) {
       return err(404, 'not-found')
+    }
 
     return ok(clean(res))
   }
@@ -157,8 +159,9 @@ export class WaterController extends Controller {
       },
     })
 
-    if (!res)
+    if (!res) {
       return err(404, 'not-found')
+    }
 
     return ok({
       amountMl: res.amountMl,

@@ -68,8 +68,9 @@ export class FastingController extends Controller {
       },
     })
 
-    if (!res)
+    if (!res) {
       return err(404, 'not-found')
+    }
 
     return ok(res)
   }

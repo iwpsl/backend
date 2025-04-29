@@ -22,8 +22,9 @@ app.use(express.static(pathFromRoot('public')))
 
 RegisterRoutes(app)
 
-if (isDev)
+if (isDev) {
   setupDevRoutes(app)
+}
 
 app.use(authErrorMiddleware)
 app.use(errorMiddleware)

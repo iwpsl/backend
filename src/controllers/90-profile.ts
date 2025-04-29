@@ -33,8 +33,9 @@ export class ProfileController extends Controller {
   @Get()
   public async getProfile(@Request() req: AuthRequest): Api<ProfileDataResult> {
     const profile = await db.profile.findUnique({ where: { userId: req.user!.id } })
-    if (!profile)
+    if (!profile) {
       return err(404, 'not-found')
+    }
 
     const { id, updatedAt, createdAt, ...rest } = profile
     return ok({
