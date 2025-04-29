@@ -47,6 +47,16 @@ CREATE TABLE "Profile" (
 );
 
 -- CreateTable
+CREATE TABLE "Experience" (
+    "id" UUID NOT NULL,
+    "level" INTEGER NOT NULL,
+    "xp" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
+
+    CONSTRAINT "Experience_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "CalorieTarget" (
     "id" UUID NOT NULL,
     "energyKcal" INTEGER NOT NULL,
@@ -182,6 +192,9 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Experience_userId_key" ON "Experience"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "CalorieHeader_userId_date_key" ON "CalorieHeader"("userId", "date");
 
 -- CreateIndex
@@ -195,6 +208,9 @@ CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("em
 
 -- AddForeignKey
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Experience" ADD CONSTRAINT "Experience_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CalorieTarget" ADD CONSTRAINT "CalorieTarget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
