@@ -42,8 +42,8 @@ model User {
   stepTarget    StepTarget[]
   fasting       FastingEntry[]
 
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Gender {
