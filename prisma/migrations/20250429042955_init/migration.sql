@@ -123,6 +123,7 @@ CREATE TABLE "WaterEntry" (
 CREATE TABLE "StepTarget" (
     "id" UUID NOT NULL,
     "steps" INTEGER NOT NULL,
+    "distanceKm" DOUBLE PRECISION NOT NULL,
     "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -136,6 +137,8 @@ CREATE TABLE "StepEntry" (
     "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "steps" INTEGER NOT NULL,
+    "distanceKm" DOUBLE PRECISION NOT NULL,
+    "activeMinutes" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
     "targetId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

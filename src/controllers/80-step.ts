@@ -1,6 +1,6 @@
 import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
-import { Body, Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
@@ -11,10 +11,13 @@ interface StepJournalData {
   id?: UUID
   date: Date
   steps: number
+  distanceKm: number
+  activeMinutes: number
 }
 
 interface StepTargetData {
   steps: number
+  distanceKm: number
 }
 
 interface StepJournalResultData extends StepJournalData {
@@ -67,6 +70,22 @@ export class StepController extends Controller {
         },
       })
     }
+
+    return ok()
+  }
+
+  /** Delete a journal entry. */
+  @Delete('/journal/id/{id}')
+  public async deleteStepJournal(
+    @Request() req: AuthRequest,
+    @Path() id: UUID,
+  ): Api {
+    const userId = req.user!.id
+
+    await db.stepEntry.update({
+      where: { id, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
+    })
 
     return ok()
   }
@@ -148,8 +167,11 @@ export class StepController extends Controller {
       id: res.id,
       steps: res.steps,
       date: res.date,
+      activeMinutes: res.activeMinutes,
+      distanceKm: res.distanceKm,
       target: {
         steps: res.target.steps,
+        distanceKm: res.target.distanceKm,
       },
     })
   }

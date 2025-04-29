@@ -9,6 +9,7 @@ export interface JobDataMapping {
   // Cron
   cleanupCalorieTarget: void
   cleanupCalorieHeader: void
+  cleanupStepTarget: void
   cleanupWaterTarget: void
 }
 

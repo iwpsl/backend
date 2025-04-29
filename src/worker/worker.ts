@@ -34,6 +34,12 @@ const jobHandlers: JobHandlers = {
     })
   },
 
+  async cleanupStepTarget() {
+    await db.stepTarget.deleteMany({
+      where: { entries: { none: {} } },
+    })
+  },
+
   async cleanupWaterTarget() {
     await db.waterTarget.deleteMany({
       where: { entries: { none: {} } },

@@ -35,5 +35,5 @@ app.listen(port, () => {
 
 scheduleWork('0 0 * * *', 'cleanupCalorieHeader')
 scheduleWork('0 1 * * *', 'cleanupCalorieTarget')
-
+scheduleWork('0 1 * * *', 'cleanupStepTarget')
 scheduleWork('0 1 * * *', 'cleanupWaterTarget')
