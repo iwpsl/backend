@@ -120,11 +120,24 @@ CREATE TABLE "WaterEntry" (
 );
 
 -- CreateTable
+CREATE TABLE "StepTarget" (
+    "id" UUID NOT NULL,
+    "steps" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "StepTarget_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "StepEntry" (
     "id" UUID NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "steps" INTEGER NOT NULL,
     "userId" UUID NOT NULL,
+    "targetId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),
@@ -205,7 +218,13 @@ ALTER TABLE "WaterEntry" ADD CONSTRAINT "WaterEntry_userId_fkey" FOREIGN KEY ("u
 ALTER TABLE "WaterEntry" ADD CONSTRAINT "WaterEntry_targetId_fkey" FOREIGN KEY ("targetId") REFERENCES "WaterTarget"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "StepTarget" ADD CONSTRAINT "StepTarget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "StepEntry" ADD CONSTRAINT "StepEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "StepEntry" ADD CONSTRAINT "StepEntry_targetId_fkey" FOREIGN KEY ("targetId") REFERENCES "StepTarget"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FastingEntry" ADD CONSTRAINT "FastingEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

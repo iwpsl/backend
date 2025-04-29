@@ -22,7 +22,7 @@ interface WaterJournalResultData extends WaterJournalData {
   id: UUID
 }
 
-interface DailyWaterJournalData extends WaterJournalData {
+interface DailyWaterJournalData extends WaterJournalResultData {
   target: WaterTargetData
 }
 
@@ -164,6 +164,7 @@ export class WaterController extends Controller {
     }
 
     return ok({
+      id: res.id,
       amountMl: res.amountMl,
       date: res.date,
       target: {

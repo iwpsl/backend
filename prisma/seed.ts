@@ -100,15 +100,23 @@ async function up() {
       })
     }
 
+    const stepTarget = await db.stepTarget.create({
+      data: {
+        userId: user.id,
+        steps: faker.number.int({ min: 3000, max: 12000 }),
+      },
+    })
+
     len = faker.number.int({ min: 10, max: 20 })
     for (let i = 0; i < len; ++i) {
-      const date = new Date()
+      const date = getDateOnly(new Date())
       date.setDate(date.getDate() - i)
 
       await db.stepEntry.create({
         data: {
           userId: user.id,
           date,
+          targetId: stepTarget.id,
           steps: faker.number.int({ min: 1000, max: 20000 }),
         },
       })
@@ -152,8 +160,12 @@ async function up() {
 
 async function down() {
   await db.calorieEntry.deleteMany()
+  await db.calorieHeader.deleteMany()
+  await db.calorieTarget.deleteMany()
   await db.waterEntry.deleteMany()
+  await db.waterTarget.deleteMany()
   await db.stepEntry.deleteMany()
+  await db.stepTarget.deleteMany()
   await db.fastingEntry.deleteMany()
   await db.profile.deleteMany()
   await db.user.deleteMany()
