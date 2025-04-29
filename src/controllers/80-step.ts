@@ -5,6 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
+import { getDateOnly } from '../utils.js'
 
 interface StepJournalData {
   id?: UUID
@@ -12,8 +13,16 @@ interface StepJournalData {
   steps: number
 }
 
+interface StepTargetData {
+  steps: number
+}
+
 interface StepJournalResultData extends StepJournalData {
   id: UUID
+}
+
+interface DailyStepJournalData extends StepJournalResultData {
+  target: StepTargetData
 }
 
 @Route('step')
@@ -28,20 +37,32 @@ export class StepController extends Controller {
     @Body() body: StepJournalData,
   ): Api {
     const userId = req.user!.id
-    const { id, ...data } = body
+    const { id, date, ...data } = body
+    const dateOnly = getDateOnly(date)
 
     if (body.id) {
       await db.stepEntry.update({
-        where: { id },
+        where: { id, userId, deletedAt: null },
         data: {
-          userId,
+          date: dateOnly,
           ...data,
         },
       })
     } else {
+      const latestTarget = await db.stepTarget.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (!latestTarget) {
+        throw new Error('No target')
+      }
+
       await db.stepEntry.create({
         data: {
           userId,
+          targetId: latestTarget.id,
+          date: dateOnly,
           ...data,
         },
       })
@@ -96,5 +117,93 @@ export class StepController extends Controller {
     }
 
     return ok(res)
+  }
+
+  /** Get entry by date. */
+  @Get('/journal/date/{date}')
+  public async getStepJournalByDate(
+    @Request() req: AuthRequest,
+    @Path() date: Date,
+  ): Api<DailyStepJournalData> {
+    const userId = req.user!.id
+    const dateOnly = getDateOnly(date)
+
+    const res = await db.stepEntry.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: dateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    if (!res) {
+      return err(404, 'not-found')
+    }
+
+    return ok({
+      id: res.id,
+      steps: res.steps,
+      date: res.date,
+      target: {
+        steps: res.target.steps,
+      },
+    })
+  }
+
+  /** Get latest target. */
+  @Get('/target/latest')
+  public async getLatestStepTarget(
+    @Request() req: AuthRequest,
+  ): Api<StepTargetData> {
+    const userId = req.user!.id
+
+    const res = await db.stepTarget.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!res) {
+      return err(404, 'not-found')
+    }
+
+    return ok(res)
+  }
+
+  /** Insert a new target. */
+  @Post('/target')
+  public async createStepTarget(
+    @Request() req: AuthRequest,
+    @Body() body: StepTargetData,
+  ): Api {
+    const userId = req.user!.id
+
+    const target = await db.stepTarget.create({
+      data: {
+        userId,
+        ...body,
+      },
+    })
+
+    const todayEntry = await db.stepEntry.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: getDateOnly(new Date()),
+        },
+      },
+    })
+
+    if (todayEntry) {
+      await db.stepEntry.update({
+        where: { id: todayEntry.id },
+        data: { targetId: target.id },
+      })
+    }
+
+    return ok()
   }
 }

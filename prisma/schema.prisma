@@ -38,6 +38,7 @@ model User {
   water         WaterEntry[]
   waterTarget   WaterTarget[]
   step          StepEntry[]
+  stepTarget    StepTarget[]
   fasting       FastingEntry[]
 
   createdAt DateTime @default(now())
@@ -160,6 +161,20 @@ model WaterEntry {
   @@unique([userId, date])
 }
 
+model StepTarget {
+  id    String @id @default(uuid()) @db.Uuid
+  steps Int
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  entries StepEntry[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
 model StepEntry {
   id    String   @id @default(uuid()) @db.Uuid
   date  DateTime @default(now())
@@ -167,6 +182,9 @@ model StepEntry {
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetId String     @db.Uuid
+  target   StepTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
