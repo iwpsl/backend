@@ -23,9 +23,13 @@ export function errorMiddleware(e: any, _req: Request, res: Response, next: Next
   }
 
   if (e instanceof Error) {
-    return r(res.json(err(500, 'internal-server-error', {
-      stack: isDev ? e.stack : undefined,
-    })))
+    let response = res.json(err(500, 'internal-server-error'))
+
+    if (isDev && e.stack) {
+      response = response.header('Wrsf-stacktrace', e.stack)
+    }
+
+    return r(response)
   }
 
   next(e)
