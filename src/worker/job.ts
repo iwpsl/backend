@@ -1,5 +1,7 @@
 import type { UUID } from '../api.js'
 
+export const workerName = 'worker'
+
 export interface JobDataMapping {
   fastingFinisher: { id: UUID, finishedAt: Date }
   log: string

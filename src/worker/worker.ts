@@ -3,6 +3,7 @@ import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import { db } from '../db.js'
 import { df } from '../utils.js'
+import { workerName } from './job.js'
 
 type JobHandlers = {
   [Id in JobId]: (data: JobDataMapping[Id]) => Promise<void>
@@ -42,7 +43,7 @@ const jobHandlers: JobHandlers = {
 
 const connection = new Redis({ maxRetriesPerRequest: null })
 const worker = new Worker<JobInstance<JobId>>(
-  'work',
+  workerName,
   async (job) => {
     console.log(`[  INFO!  ] Running ${job.data.id}`)
     await jobHandlers[job.data.id](job.data.data as never /* gonna give you up */)
