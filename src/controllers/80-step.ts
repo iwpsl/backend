@@ -5,7 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly } from '../utils.js'
+import { df, getDateOnly } from '../utils.js'
 
 interface StepJournalData {
   id?: UUID
@@ -174,6 +174,31 @@ export class StepController extends Controller {
         distanceKm: res.target.distanceKm,
       },
     })
+  }
+
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyStepJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<DailyStepJournalData[]> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const res = await db.stepEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    return ok(res)
   }
 
   /** Get latest target. */
