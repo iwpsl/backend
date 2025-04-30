@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly } from '../utils.js'
+import { getDateOnly, reduceSum } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -286,12 +286,12 @@ export class CalorieController extends Controller {
 
     return ok({
       total: {
-        energyKcal: res.entries.reduce((acc, curr) => acc + (curr.energyKcal * curr.portion), 0),
-        carbohydrateGr: res.entries.reduce((acc, curr) => acc + (curr.carbohydrateGr * curr.portion), 0),
-        proteinGr: res.entries.reduce((acc, curr) => acc + (curr.proteinGr * curr.portion), 0),
-        fatGr: res.entries.reduce((acc, curr) => acc + (curr.fatGr * curr.portion), 0),
-        sugarGr: res.entries.reduce((acc, curr) => acc + (curr.sugarGr * curr.portion), 0),
-        sodiumMg: res.entries.reduce((acc, curr) => acc + (curr.sodiumMg * curr.portion), 0),
+        energyKcal: reduceSum(res.entries, it => it.energyKcal * it.portion),
+        carbohydrateGr: reduceSum(res.entries, it => it.carbohydrateGr * it.portion),
+        proteinGr: reduceSum(res.entries, it => it.proteinGr * it.portion),
+        fatGr: reduceSum(res.entries, it => it.fatGr * it.portion),
+        sugarGr: reduceSum(res.entries, it => it.sugarGr * it.portion),
+        sodiumMg: reduceSum(res.entries, it => it.sodiumMg * it.portion),
       },
       target: res.target,
       entries: res.entries,

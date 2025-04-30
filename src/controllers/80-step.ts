@@ -5,7 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { df, getDateOnly } from '../utils.js'
+import { df, getDateOnly, reduceAvg } from '../utils.js'
 
 interface StepJournalData {
   id?: UUID
@@ -26,6 +26,17 @@ interface StepJournalResultData extends StepJournalData {
 
 interface DailyStepJournalData extends StepJournalResultData {
   target: StepTargetData
+}
+
+interface StepSumData {
+  steps: number
+  distanceKm: number
+  activeMinutes: number
+}
+
+interface WeeklyStepJournalData {
+  entries: (StepJournalData | null)[]
+  average: StepSumData
 }
 
 @Route('step')
@@ -176,11 +187,12 @@ export class StepController extends Controller {
     })
   }
 
+  /** Get weekly data. */
   @Get('/journal/weekly/{startDate}')
   public async getWeeklyStepJournal(
     @Request() req: AuthRequest,
     @Path() startDate: Date,
-  ): Api<DailyStepJournalData[]> {
+  ): Api<WeeklyStepJournalData> {
     const userId = req.user!.id
     const startDateOnly = getDateOnly(startDate)
     const endDateOnly = df.addDays(startDate, 7)
@@ -198,7 +210,23 @@ export class StepController extends Controller {
       },
     })
 
-    return ok(res)
+    const entries: WeeklyStepJournalData['entries'] = Array.from({ length: 7 }, () => null)
+
+    for (const item of res) {
+      const index = df.differenceInDays(item.date, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+      }
+    }
+
+    return ok({
+      average: {
+        steps: reduceAvg(res, it => it.steps),
+        distanceKm: reduceAvg(res, it => it.distanceKm),
+        activeMinutes: reduceAvg(res, it => it.activeMinutes),
+      },
+      entries,
+    })
   }
 
   /** Get latest target. */
