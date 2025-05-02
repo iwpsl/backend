@@ -41,13 +41,14 @@ export class WaterController extends Controller {
   public async postWaterJournal(
     @Request() req: AuthRequest,
     @Body() body: WaterJournalData,
-  ): Api {
+  ): Api<WaterJournalResultData> {
     const userId = req.user!.id
     const { id, date, ...data } = body
     const dateOnly = getDateOnly(date)
 
+    let res: WaterJournalResultData
     if (body.id) {
-      await db.waterEntry.update({
+      res = await db.waterEntry.update({
         where: { id, userId, deletedAt: null },
         data: {
           date: dateOnly,
@@ -64,7 +65,7 @@ export class WaterController extends Controller {
         throw new Error('No target')
       }
 
-      await db.waterEntry.create({
+      res = await db.waterEntry.create({
         data: {
           userId,
           targetId: latestTarget.id,
@@ -74,7 +75,7 @@ export class WaterController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */

@@ -176,12 +176,13 @@ export class CalorieController extends Controller {
   public async postCalorieJournal(
     @Request() req: AuthRequest,
     @Body() body: CalorieJournalData,
-  ): Api {
+  ): Api<CalorieJournalResultData> {
     const userId = req.user!.id
     const { id, ...data } = body
 
+    let res: CalorieJournalResultData
     if (body.id) {
-      await db.calorieEntry.update({
+      res = await db.calorieEntry.update({
         where: { id, userId, deletedAt: null },
         data,
       })
@@ -192,7 +193,7 @@ export class CalorieController extends Controller {
         throw new Error('No target')
       }
 
-      await db.calorieEntry.create({
+      res = await db.calorieEntry.create({
         data: {
           userId,
           headerId: header.id,
@@ -201,7 +202,7 @@ export class CalorieController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */
