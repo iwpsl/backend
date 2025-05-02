@@ -36,4 +36,8 @@ export function reduceAvg<T>(arr: T[], fn: ToNumber<T>) {
   return sum / arr.length
 }
 
+export function nullArray<T>(length: number): (T | null)[] {
+  return Array.from({ length }, () => null)
+}
+
 export const df = dateFns

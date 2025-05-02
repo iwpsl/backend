@@ -5,7 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { df, getDateOnly, reduceAvg } from '../utils.js'
+import { df, getDateOnly, nullArray, reduceAvg } from '../utils.js'
 
 interface StepJournalData {
   id?: UUID
@@ -35,7 +35,7 @@ interface StepSumData {
 }
 
 interface WeeklyStepJournalData {
-  entries: (StepJournalData | null)[]
+  entries: (StepJournalResultData | null)[]
   average: StepSumData
 }
 
@@ -211,8 +211,7 @@ export class StepController extends Controller {
       },
     })
 
-    const entries: WeeklyStepJournalData['entries'] = Array.from({ length: 7 }, () => null)
-
+    const entries = nullArray<StepJournalResultData>(7)
     for (const item of res) {
       const index = df.differenceInDays(item.date, startDateOnly)
       if (index >= 0 && index < 7) {
