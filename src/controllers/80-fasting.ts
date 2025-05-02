@@ -32,7 +32,7 @@ export class FastingController extends Controller {
   public async createFasting(
     @Request() req: AuthRequest,
     @Body() body: FastingData,
-  ): Api {
+  ): Api<FastingData> {
     const userId = req.user!.id
 
     const res = await db.fastingEntry.create({
@@ -48,7 +48,7 @@ export class FastingController extends Controller {
       { id: res.id, finishedAt: res.endTime },
     )
 
-    return ok()
+    return ok(res)
   }
 
   /** Get the current running fasting entry. */

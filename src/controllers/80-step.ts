@@ -38,13 +38,14 @@ export class StepController extends Controller {
   public async postStepJournal(
     @Request() req: AuthRequest,
     @Body() body: StepJournalData,
-  ): Api {
+  ): Api<StepJournalResultData> {
     const userId = req.user!.id
     const { id, date, ...data } = body
     const dateOnly = getDateOnly(date)
 
+    let res: StepJournalResultData
     if (body.id) {
-      await db.stepEntry.update({
+      res = await db.stepEntry.update({
         where: { id, userId, deletedAt: null },
         data: {
           date: dateOnly,
@@ -61,7 +62,7 @@ export class StepController extends Controller {
         throw new Error('No target')
       }
 
-      await db.stepEntry.create({
+      res = await db.stepEntry.create({
         data: {
           userId,
           targetId: latestTarget.id,
@@ -71,7 +72,7 @@ export class StepController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */
