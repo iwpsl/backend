@@ -16,5 +16,6 @@
 8. Start database service, `pnpm db:up`
 9. Migrate database, `pnpm db:migrate`
 10. Seed database, `pnpm db:seed`
+redis-server
 11. In another terminal, run the server `pnpm dev`
 12. To inspect the database, run `pnpm db:serve`

@@ -1,115 +1,84 @@
-import type { AuthRequest } from '../middleware/auth.ts'
+import type { Request } from 'express'
 import { PrismaClient } from '@prisma/client'
 import {
   Controller,
   Delete,
   Get,
   Path,
-  Request,
   Route,
   Security,
   Tags,
+  Request as TsoaRequest,
 } from 'tsoa'
+import { err } from '../api.js'
 
 const prisma = new PrismaClient()
 
-interface HistoryItem {
-  id: number
-  type: 'calorie' | 'water' | 'step'
-  date: Date
-  details: any
+interface HistoryResponse {
+  id: string
+  placeId: string
+  createdAt: Date
+}
+
+interface AuthRequest extends Request {
+  user?: { id: string }
 }
 
 @Route('user-history')
-@Tags('User History')
+@Tags('History')
 export class HistoryController extends Controller {
-  /**
-   * Get full history (calorie, water, steps) for the logged-in user
-   */
   @Get('/')
   @Security('auth')
-  public async getAllHistory(@Request() req: AuthRequest): Promise<HistoryItem[]> {
-    const userId = req.user!.id
+  async getUserHistory(@TsoaRequest() req: AuthRequest): Promise<HistoryResponse[]> {
+    const userId = req.user?.id
+    if (!userId) {
+      throw err(401, 'unauthorized')
+    }
 
-    const [calories, waters, steps] = await Promise.all([
-      prisma.calorieEntry.findMany({ where: { userId } }),
-      prisma.waterEntry.findMany({ where: { userId } }),
-      prisma.stepEntry.findMany({ where: { userId } }),
-    ])
+    const history = await prisma.userHistoryView.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    })
 
-    const calorieHistory: HistoryItem[] = calories.map(entry => ({
-      id: entry.id,
-      type: 'calorie',
-      date: entry.date,
-      details: entry,
+    return history.map(h => ({
+      id: h.id,
+      placeId: h.placeId,
+      createdAt: h.createdAt,
     }))
-
-    const waterHistory: HistoryItem[] = waters.map(entry => ({
-      id: entry.id,
-      type: 'water',
-      date: entry.date,
-      details: entry,
-    }))
-
-    const stepHistory: HistoryItem[] = steps.map(entry => ({
-      id: entry.id,
-      type: 'step',
-      date: entry.date,
-      details: entry,
-    }))
-
-    const fullHistory = [...calorieHistory, ...waterHistory, ...stepHistory]
-    return fullHistory.sort((a, b) => b.date.getTime() - a.date.getTime())
   }
 
-  /**
-   * Delete a single history entry by ID (calorie, water, or step)
-   */
-  @Delete('/{id}')
-  @Security('auth')
-  public async deleteHistoryById(
-    @Request() req: AuthRequest,
-    @Path() id: number,
-  ): Promise<void> {
-    const userId = req.user!.id
-
-    const [calorie, water, step] = await Promise.all([
-      prisma.calorieEntry.findFirst({ where: { id, userId } }),
-      prisma.waterEntry.findFirst({ where: { id, userId } }),
-      prisma.stepEntry.findFirst({ where: { id, userId } }),
-    ])
-
-    if (calorie) {
-      await prisma.calorieEntry.delete({ where: { id } })
-      return
-    }
-
-    if (water) {
-      await prisma.waterEntry.delete({ where: { id } })
-      return
-    }
-
-    if (step) {
-      await prisma.stepEntry.delete({ where: { id } })
-      return
-    }
-
-    this.setStatus(404)
-    throw new Error('History entry not found')
-  }
-
-  /**
-   * Delete all history entries (calorie, water, step) for the logged-in user
-   */
   @Delete('/')
   @Security('auth')
-  public async deleteAllHistory(@Request() req: AuthRequest): Promise<void> {
-    const userId = req.user!.id
+  async deleteAllUserHistory(@TsoaRequest() req: AuthRequest): Promise<{ message: string }> {
+    const userId = req.user?.id
+    if (!userId) {
+      throw err(401, 'unauthorized')
+    }
 
-    await Promise.all([
-      prisma.calorieEntry.deleteMany({ where: { userId } }),
-      prisma.waterEntry.deleteMany({ where: { userId } }),
-      prisma.stepEntry.deleteMany({ where: { userId } }),
-    ])
+    await prisma.userHistoryView.deleteMany({ where: { userId } })
+    return { message: 'All history deleted.' }
+  }
+
+  @Delete('{historyId}')
+  @Security('auth')
+  async deleteHistoryById(
+    @Path() historyId: string,
+    @TsoaRequest() req: AuthRequest,
+  ): Promise<{ message: string }> {
+    const userId = req.user?.id
+    if (!userId) {
+      throw err(401, 'unauthorized')
+    }
+
+    const existing = await prisma.userHistoryView.findFirst({
+      where: { id: historyId, userId },
+    })
+
+    if (!existing) {
+      throw err(404, 'not-found')
+    }
+
+    await prisma.userHistoryView.delete({ where: { id: historyId } })
+    return { message: 'History deleted.' }
   }
 }

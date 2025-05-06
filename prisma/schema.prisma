@@ -245,6 +245,8 @@ model UserHistoryView {
   value      Float?
   unit       String?
 
-  @@map("user_history_view")
+  @@map("userHistoryView")
   @@ignore
 }
+
+
