@@ -21,4 +21,23 @@ export function getDateOnly(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
 }
 
+export type ToNumber<T> = (t: T) => number
+
+export function reduceSum<T>(arr: T[], fn: ToNumber<T>) {
+  return arr.reduce((acc, cur) => acc + fn(cur), 0)
+}
+
+export function reduceAvg<T>(arr: T[], fn: ToNumber<T>) {
+  if (arr.length === 0) {
+    return 0
+  }
+
+  const sum = reduceSum(arr, fn)
+  return sum / arr.length
+}
+
+export function nullArray<T>(length: number): (T | null)[] {
+  return Array.from({ length }, () => null)
+}
+
 export const df = dateFns
