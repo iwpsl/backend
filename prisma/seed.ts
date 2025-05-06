@@ -169,7 +169,7 @@ async function up() {
           userId: user.id,
           startTime,
           endTime,
-          finishedAt: endTime,
+          finishedAt: df.addHours(startTime, 24),
         },
       })
     }
