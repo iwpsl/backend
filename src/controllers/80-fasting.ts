@@ -52,10 +52,11 @@ export class FastingController extends Controller {
       },
     })
 
+    const tomorrow = df.addHours(res.startTime, 24)
     await enqueueWork(
-      res.endTime,
+      tomorrow,
       'fastingFinisher',
-      { id: res.id, finishedAt: res.endTime },
+      { id: res.id, finishedAt: tomorrow },
     )
 
     return ok(res)
