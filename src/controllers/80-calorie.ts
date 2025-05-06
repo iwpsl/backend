@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { df, getDateOnly, reduceSum } from '../utils.js'
+import { df, getDateOnly, nullArray, reduceAvg, reduceSum } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -78,7 +78,6 @@ interface DailyCalorieJournalData {
 }
 
 interface CalorieDataWithPercentage extends CalorieData {
-  energyPercentage: number
   proteinPercentage: number
   carbohydratePercentage: number
   fatPercentage: number
@@ -319,35 +318,50 @@ export class CalorieController extends Controller {
   ): Api<WeeklyCalorieJournalData> {
     const userId = req.user!.id
     const startDateOnly = getDateOnly(startDate)
-    const endDateOnly = df.addDays(startDate, 7)
 
     const allDateOnly = Array.from({ length: 7 }, (_v, i) => df.addDays(startDate, i))
-    const res = await db.waterEntry.findMany({
-      where: {
-        userId,
-        date: {
-          gte: startDateOnly,
-          lt: endDateOnly,
-        },
-      },
-      include: {
-        target: true,
-      },
-    })
+    const res = await Promise.all(allDateOnly.map(it => getOrCreateHeader(userId, it, true)))
 
-    const entries = nullArray<WaterJournalResultData>(7)
+    const headers = nullArray<(typeof res)[0]>(7)
     for (const item of res) {
+      if (!item) {
+        continue
+      }
       const index = df.differenceInDays(item.date, startDateOnly)
       if (index >= 0 && index < 7) {
-        entries[index] = item
+        headers[index] = item
       }
     }
 
+    const entries: (CalorieData | null)[] = headers.map(res => res
+      ? {
+          energyKcal: reduceSum(res.entries, it => it.energyKcal * it.portion),
+          carbohydrateGr: reduceSum(res.entries, it => it.carbohydrateGr * it.portion),
+          proteinGr: reduceSum(res.entries, it => it.proteinGr * it.portion),
+          fatGr: reduceSum(res.entries, it => it.fatGr * it.portion),
+          sugarGr: reduceSum(res.entries, it => it.sugarGr * it.portion),
+          sodiumMg: reduceSum(res.entries, it => it.sodiumMg * it.portion),
+        }
+      : null)
+
+    const nonNullableEntries = entries.filter(it => it) as CalorieData[]
+    const average: CalorieData = {
+      energyKcal: reduceAvg(nonNullableEntries, it => it.energyKcal),
+      carbohydrateGr: reduceAvg(nonNullableEntries, it => it.carbohydrateGr),
+      proteinGr: reduceAvg(nonNullableEntries, it => it.proteinGr),
+      fatGr: reduceAvg(nonNullableEntries, it => it.fatGr),
+      sugarGr: reduceAvg(nonNullableEntries, it => it.sugarGr),
+      sodiumMg: reduceAvg(nonNullableEntries, it => it.sodiumMg),
+    }
+
     return ok({
-      average: {
-        amountMl: reduceAvg(res, it => it.amountMl),
-      },
       entries,
+      average: {
+        ...average,
+        carbohydratePercentage: average.carbohydrateGr * 4 / average.energyKcal * 100,
+        proteinPercentage: average.proteinGr * 4 / average.energyKcal * 100,
+        fatPercentage: average.fatGr * 9 / average.energyKcal * 100,
+      },
     })
   }
 
