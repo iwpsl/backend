@@ -144,7 +144,7 @@ export class FastingController extends Controller {
 
   /** Get weekly data. */
   @Get('/journal/weekly/{startDate}')
-  public async getWeeklyWaterJournal(
+  public async getWeeklyFastingJournal(
     @Request() req: AuthRequest,
     @Path() startDate: Date,
   ): Api<WeeklyFastingData> {
