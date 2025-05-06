@@ -7,6 +7,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
+import { df } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
 
 interface FastingData {
@@ -42,10 +43,11 @@ export class FastingController extends Controller {
       },
     })
 
+    const tomorrow = df.addHours(res.startTime, 24)
     await enqueueWork(
-      res.endTime,
+      tomorrow,
       'fastingFinisher',
-      { id: res.id, finishedAt: res.endTime },
+      { id: res.id, finishedAt: tomorrow },
     )
 
     return ok(res)
