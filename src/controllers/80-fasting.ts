@@ -7,17 +7,27 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
+import { df, getDateOnly, nullArray } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
 
 interface FastingData {
-  id?: UUID
   category: FastingCategory
   startTime: Date
   endTime: Date
   finishedAt: Date | null
 }
 
-function clean(res: FastingEntry): FastingData {
+interface FastingResultData extends FastingData {
+  id?: UUID
+}
+
+interface WeeklyFastingData {
+  maxStreak: number
+  commonCategory?: FastingCategory
+  entries: (FastingResultData | null)[]
+}
+
+function clean(res: FastingEntry): FastingResultData {
   const { userId, ...rest } = cleanUpdateAttrs(res)
   return rest
 }
@@ -31,8 +41,8 @@ export class FastingController extends Controller {
   @Post('/start')
   public async createFasting(
     @Request() req: AuthRequest,
-    @Body() body: FastingData,
-  ): Api<FastingData> {
+    @Body() body: FastingResultData,
+  ): Api<FastingResultData> {
     const userId = req.user!.id
 
     const res = await db.fastingEntry.create({
@@ -55,7 +65,7 @@ export class FastingController extends Controller {
   @Get('/current')
   public async getCurrentFasting(
     @Request() req: AuthRequest,
-  ): Api<FastingData> {
+  ): Api<FastingResultData> {
     const userId = req.user!.id
 
     const res = await db.fastingEntry.findFirst({
@@ -96,7 +106,7 @@ export class FastingController extends Controller {
   public async getFastingJournals(
     @Request() req: AuthRequest,
     @Query() after?: UUID,
-  ): Api<FastingData[]> {
+  ): Api<FastingResultData[]> {
     const userId = req.user!.id
 
     const res = after
@@ -130,5 +140,64 @@ export class FastingController extends Controller {
     })
 
     return ok()
+  }
+
+  /** Get weekly data. */
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyWaterJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<WeeklyFastingData> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const res = await db.fastingEntry.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+        finishedAt: {
+          gte: db.fastingEntry.fields.endTime,
+        },
+      },
+      orderBy: {
+        startTime: 'asc',
+      },
+    })
+
+    const categoryCount: Partial<Record<FastingCategory, number>> = {}
+    const entries = nullArray<FastingResultData>(7)
+    for (const item of res) {
+      const index = df.differenceInDays(item.startTime, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+        categoryCount[item.category] = (categoryCount[item.category] ?? 0) + 1
+      }
+    }
+
+    let maxStreak = 0
+    let currentStreak = 0
+    for (const entry of entries) {
+      if (entry) {
+        currentStreak++
+        maxStreak = Math.max(maxStreak, currentStreak)
+      } else {
+        currentStreak = 0
+      }
+    }
+
+    const commonCategory = Object.entries(categoryCount).reduce(
+      (max, [category, count]) => count > max.count ? { category: category as FastingCategory, count } : max,
+      { category: undefined as FastingCategory | undefined, count: -Infinity },
+    )
+
+    return ok({
+      maxStreak,
+      commonCategory: commonCategory.category,
+      entries,
+    })
   }
 }
