@@ -97,7 +97,7 @@ function clean(res: CalorieEntry) {
   return rest
 }
 
-async function getOrCreateHeader(userId: UUID, date: Date, includeExtra: boolean) {
+async function getHeader(userId: UUID, date: Date, createIfMissing: boolean, includeExtra: boolean) {
   let res = await db.calorieHeader.findUnique({
     where: {
       userId_date: {
@@ -113,14 +113,14 @@ async function getOrCreateHeader(userId: UUID, date: Date, includeExtra: boolean
     },
   })
 
-  if (!res) {
+  if (!res && createIfMissing) {
     const latestTarget = await db.calorieTarget.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     })
 
     if (!latestTarget) {
-      return undefined
+      return null
     }
 
     res = await db.calorieHeader.create({
@@ -198,7 +198,7 @@ export class CalorieController extends Controller {
         data,
       })
     } else {
-      const header = await getOrCreateHeader(userId, getDateOnly(data.date), false)
+      const header = await getHeader(userId, getDateOnly(data.date), true, false)
 
       if (!header) {
         throw new Error('No target')
@@ -286,7 +286,7 @@ export class CalorieController extends Controller {
     const userId = req.user!.id
     const dateOnly = getDateOnly(date)
 
-    const res = await getOrCreateHeader(userId, dateOnly, true)
+    const res = await getHeader(userId, dateOnly, true, true)
 
     if (!res) {
       return ok({
@@ -320,11 +320,11 @@ export class CalorieController extends Controller {
     const startDateOnly = getDateOnly(startDate)
 
     const allDateOnly = Array.from({ length: 7 }, (_v, i) => df.addDays(startDate, i))
-    const res = await Promise.all(allDateOnly.map(it => getOrCreateHeader(userId, it, true)))
+    const res = await Promise.all(allDateOnly.map(it => getHeader(userId, it, false, true)))
 
     const headers = nullArray<(typeof res)[0]>(7)
     for (const item of res) {
-      if (!item) {
+      if (!item || item.entries.length === 0) {
         continue
       }
       const index = df.differenceInDays(item.date, startDateOnly)
@@ -399,7 +399,7 @@ export class CalorieController extends Controller {
       },
     })
 
-    const todayHeader = await getOrCreateHeader(userId, new Date(), false)
+    const todayHeader = await getHeader(userId, new Date(), false, false)
 
     if (todayHeader) {
       await db.calorieHeader.update({
