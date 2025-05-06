@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly, reduceSum } from '../utils.js'
+import { df, getDateOnly, reduceSum } from '../utils.js'
 
 const apiUrl = 'https://world.openfoodfacts.org/api/v2'
 
@@ -75,6 +75,18 @@ interface DailyCalorieJournalData {
   total: CalorieData
   target: CalorieTargetData
   entries: CalorieJournalData[]
+}
+
+interface CalorieDataWithPercentage extends CalorieData {
+  energyPercentage: number
+  proteinPercentage: number
+  carbohydratePercentage: number
+  fatPercentage: number
+}
+
+interface WeeklyCalorieJournalData {
+  average: CalorieDataWithPercentage
+  entries: (CalorieData | null)[]
 }
 
 interface CalorieJournalResultData extends CalorieJournalData {
@@ -296,6 +308,46 @@ export class CalorieController extends Controller {
       },
       target: res.target,
       entries: res.entries,
+    })
+  }
+
+  /** Get weekly data. */
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyCalorieJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<WeeklyCalorieJournalData> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const allDateOnly = Array.from({ length: 7 }, (_v, i) => df.addDays(startDate, i))
+    const res = await db.waterEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    const entries = nullArray<WaterJournalResultData>(7)
+    for (const item of res) {
+      const index = df.differenceInDays(item.date, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+      }
+    }
+
+    return ok({
+      average: {
+        amountMl: reduceAvg(res, it => it.amountMl),
+      },
+      entries,
     })
   }
 
