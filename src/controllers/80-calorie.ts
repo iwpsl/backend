@@ -399,7 +399,7 @@ export class CalorieController extends Controller {
       },
     })
 
-    const todayHeader = await getHeader(userId, new Date(), false, false)
+    const todayHeader = await getHeader(userId, getDateOnly(new Date()), false, false)
 
     if (todayHeader) {
       await db.calorieHeader.update({
