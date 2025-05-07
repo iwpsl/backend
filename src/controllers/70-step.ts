@@ -5,7 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly } from '../utils.js'
+import { df, getDateOnly, nullArray, reduceAvg } from '../utils.js'
 
 interface StepJournalData {
   id?: UUID
@@ -28,6 +28,17 @@ interface DailyStepJournalData extends StepJournalResultData {
   target: StepTargetData
 }
 
+interface StepSumData {
+  steps: number
+  distanceKm: number
+  activeMinutes: number
+}
+
+interface WeeklyStepJournalData {
+  entries: (StepJournalResultData | null)[]
+  average: StepSumData
+}
+
 @Route('step')
 @Tags('Step')
 @Security('auth')
@@ -38,13 +49,14 @@ export class StepController extends Controller {
   public async postStepJournal(
     @Request() req: AuthRequest,
     @Body() body: StepJournalData,
-  ): Api {
+  ): Api<StepJournalResultData> {
     const userId = req.user!.id
     const { id, date, ...data } = body
     const dateOnly = getDateOnly(date)
 
+    let res: StepJournalResultData
     if (body.id) {
-      await db.stepEntry.update({
+      res = await db.stepEntry.update({
         where: { id, userId, deletedAt: null },
         data: {
           date: dateOnly,
@@ -61,7 +73,7 @@ export class StepController extends Controller {
         throw new Error('No target')
       }
 
-      await db.stepEntry.create({
+      res = await db.stepEntry.create({
         data: {
           userId,
           targetId: latestTarget.id,
@@ -71,7 +83,7 @@ export class StepController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */
@@ -173,6 +185,47 @@ export class StepController extends Controller {
         steps: res.target.steps,
         distanceKm: res.target.distanceKm,
       },
+    })
+  }
+
+  /** Get weekly data. */
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyStepJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<WeeklyStepJournalData> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const res = await db.stepEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    const entries = nullArray<StepJournalResultData>(7)
+    for (const item of res) {
+      const index = df.differenceInDays(item.date, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+      }
+    }
+
+    return ok({
+      average: {
+        steps: reduceAvg(res, it => it.steps),
+        distanceKm: reduceAvg(res, it => it.distanceKm),
+        activeMinutes: reduceAvg(res, it => it.activeMinutes),
+      },
+      entries,
     })
   }
 

@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { cleanUpdateAttrs, db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly } from '../utils.js'
+import { df, getDateOnly, nullArray, reduceAvg } from '../utils.js'
 
 interface WaterJournalData {
   id?: UUID
@@ -14,7 +14,7 @@ interface WaterJournalData {
   amountMl: number
 }
 
-interface WaterTargetData {
+interface WaterData {
   amountMl: number
 }
 
@@ -23,12 +23,17 @@ interface WaterJournalResultData extends WaterJournalData {
 }
 
 interface DailyWaterJournalData extends WaterJournalResultData {
-  target: WaterTargetData
+  target: WaterData
 }
 
 function clean(res: WaterEntry) {
   const { userId, ...rest } = cleanUpdateAttrs(res)
   return rest
+}
+
+interface WeeklyWaterJournalData {
+  entries: (WaterJournalResultData | null)[]
+  average: WaterData
 }
 
 @Route('water')
@@ -41,13 +46,14 @@ export class WaterController extends Controller {
   public async postWaterJournal(
     @Request() req: AuthRequest,
     @Body() body: WaterJournalData,
-  ): Api {
+  ): Api<WaterJournalResultData> {
     const userId = req.user!.id
     const { id, date, ...data } = body
     const dateOnly = getDateOnly(date)
 
+    let res: WaterJournalResultData
     if (body.id) {
-      await db.waterEntry.update({
+      res = await db.waterEntry.update({
         where: { id, userId, deletedAt: null },
         data: {
           date: dateOnly,
@@ -64,7 +70,7 @@ export class WaterController extends Controller {
         throw new Error('No target')
       }
 
-      await db.waterEntry.create({
+      res = await db.waterEntry.create({
         data: {
           userId,
           targetId: latestTarget.id,
@@ -74,7 +80,7 @@ export class WaterController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */
@@ -173,11 +179,50 @@ export class WaterController extends Controller {
     })
   }
 
+  /** Get weekly data. */
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyWaterJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<WeeklyWaterJournalData> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const res = await db.waterEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    const entries = nullArray<WaterJournalResultData>(7)
+    for (const item of res) {
+      const index = df.differenceInDays(item.date, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+      }
+    }
+
+    return ok({
+      average: {
+        amountMl: reduceAvg(res, it => it.amountMl),
+      },
+      entries,
+    })
+  }
+
   /** Get latest target. */
   @Get('/target/latest')
   public async getLatestWaterTarget(
     @Request() req: AuthRequest,
-  ): Api<WaterTargetData> {
+  ): Api<WaterData> {
     const userId = req.user!.id
 
     const res = await db.waterTarget.findFirst({
@@ -196,7 +241,7 @@ export class WaterController extends Controller {
   @Post('/target')
   public async createWaterTarget(
     @Request() req: AuthRequest,
-    @Body() body: WaterTargetData,
+    @Body() body: WaterData,
   ): Api {
     const userId = req.user!.id
 

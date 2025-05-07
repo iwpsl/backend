@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker'
 import { FastingCategory, Gender, MealType } from '@prisma/client'
 import { bcryptHash } from '../src/crypto.js'
 import { db } from '../src/db.js'
-import { getDateOnly } from '../src/utils.js'
+import { df, getDateOnly } from '../src/utils.js'
 
 async function up() {
   faker.seed(420)
@@ -130,21 +130,46 @@ async function up() {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
-      const startTime = faker.date.between({
+      const endTime = faker.date.between({
         from: new Date(date.setHours(18, 0, 0)),
         to: new Date(date.setHours(22, 0, 0)),
       })
 
-      const durationH = faker.number.int({ min: 12, max: 24 })
-      const endTime = new Date(startTime)
-      endTime.setHours(endTime.getHours() + durationH)
+      const category = faker.helpers.enumValue(FastingCategory)
+      let durationH = 0
+      switch (category) {
+        case 'fast16eat08':
+          durationH = 16
+          break
+        case 'fast18eat06':
+          durationH = 18
+          break
+        case 'fast14eat10':
+          durationH = 14
+          break
+        case 'fast12eat12':
+          durationH = 12
+          break
+        case 'fast13eat11':
+          durationH = 13
+          break
+        case 'fast15eat09':
+          durationH = 15
+          break
+        case 'custom':
+          durationH = faker.number.int({ min: 12, max: 24 })
+          break
+      }
+
+      const startTime = df.subHours(endTime, durationH)
 
       await db.fastingEntry.create({
         data: {
-          category: faker.helpers.enumValue(FastingCategory),
+          category,
           userId: user.id,
           startTime,
           endTime,
+          finishedAt: df.addHours(startTime, 24),
         },
       })
     }
