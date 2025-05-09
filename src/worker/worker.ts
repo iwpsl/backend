@@ -1,6 +1,7 @@
 import type { JobDataMapping, JobId, JobInstance } from './job.js'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
+import { addXp } from '../controllers/80-xp.js'
 import { db } from '../db.js'
 import { df } from '../utils.js'
 import { workerName } from './job.js'
@@ -11,10 +12,12 @@ type JobHandlers = {
 
 const jobHandlers: JobHandlers = {
   async fastingFinisher({ id, finishedAt }) {
-    await db.fastingEntry.update({
+    const res = await db.fastingEntry.update({
       where: { id },
       data: { finishedAt },
     })
+
+    await addXp(res.userId, 10)
   },
 
   async log(msg) {
