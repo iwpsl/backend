@@ -31,6 +31,7 @@ CREATE TABLE "User" (
     "role" "Role" NOT NULL DEFAULT 'user',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "tokenVersion" INTEGER NOT NULL DEFAULT 0,
+    "fcmToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
