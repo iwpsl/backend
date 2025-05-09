@@ -8,6 +8,12 @@ CREATE TYPE "AuthType" AS ENUM ('email', 'firebase');
 CREATE TYPE "Gender" AS ENUM ('male', 'female');
 
 -- CreateEnum
+CREATE TYPE "MainGoal" AS ENUM ('weightLoss', 'stayFit', 'buildMuscle');
+
+-- CreateEnum
+CREATE TYPE "ActivityLevel" AS ENUM ('low', 'medium', 'high', 'veryHigh');
+
+-- CreateEnum
 CREATE TYPE "MealType" AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
 
 -- CreateEnum
@@ -35,10 +41,13 @@ CREATE TABLE "User" (
 CREATE TABLE "Profile" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
-    "dateOfBirth" TIMESTAMP(3) NOT NULL,
     "gender" "Gender" NOT NULL,
+    "mainGoal" "MainGoal" NOT NULL,
+    "age" INTEGER NOT NULL,
     "heightCm" INTEGER NOT NULL,
     "weightKg" INTEGER NOT NULL,
+    "weightTargetKg" INTEGER NOT NULL,
+    "activityLevel" "ActivityLevel" NOT NULL,
     "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

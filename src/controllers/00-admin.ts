@@ -1,3 +1,4 @@
+import type { ActivityLevel, Gender, MainGoal } from '@prisma/client'
 import type { Api } from '../api.js'
 import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
@@ -7,10 +8,13 @@ import { roleMiddleware } from '../middleware/role.js'
 type AdminProfileData = Array<{
   email: string
   name: string
-  dateOfBirth: Date
-  gender: string
+  mainGoal: MainGoal
+  age: number
+  gender: Gender
   heightCm: number
   weightKg: number
+  weightTargetKg: number
+  activityLevel: ActivityLevel
 }>
 
 @Route('admin')
@@ -31,10 +35,13 @@ export class AdminController extends Controller {
         profile: {
           select: {
             name: true,
-            dateOfBirth: true,
+            mainGoal: true,
+            age: true,
             gender: true,
             heightCm: true,
             weightKg: true,
+            weightTargetKg: true,
+            activityLevel: true,
           },
         },
       },

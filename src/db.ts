@@ -11,6 +11,7 @@ export type Role = DbRole
 export type FastingCategory = DbFastingCategory
 
 const softDeleteModels: Prisma.ModelName[] = [
+  'CalorieHeader',
   'CalorieEntry',
   'FastingEntry',
   'StepEntry',

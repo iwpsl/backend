@@ -1,6 +1,6 @@
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { FastingCategory, Gender, MealType } from '@prisma/client'
+import { ActivityLevel, FastingCategory, Gender, MainGoal, MealType } from '@prisma/client'
 import { bcryptHash } from '../src/crypto.js'
 import { db } from '../src/db.js'
 import { df, getDateOnly } from '../src/utils.js'
@@ -31,10 +31,13 @@ async function up() {
       data: {
         userId: user.id,
         name: faker.person.fullName(),
-        dateOfBirth: faker.date.birthdate(),
         gender: faker.helpers.enumValue(Gender),
+        mainGoal: faker.helpers.enumValue(MainGoal),
+        age: faker.number.int({ min: 17, max: 40 }),
         heightCm: faker.number.int({ min: 150, max: 180 }),
         weightKg: faker.number.int({ min: 50, max: 100 }),
+        weightTargetKg: faker.number.int({ min: 50, max: 100 }),
+        activityLevel: faker.helpers.enumValue(ActivityLevel),
       },
     })
 

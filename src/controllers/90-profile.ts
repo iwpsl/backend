@@ -1,3 +1,4 @@
+import type { ActivityLevel, MainGoal } from '@prisma/client'
 import type { Api } from '../api.js'
 import type { Gender } from '../db.js'
 import type { AuthRequest } from '../middleware/auth.js'
@@ -13,10 +14,13 @@ import { baseUrl, pathFromRoot } from '../utils.js'
 
 interface ProfileData {
   name: string
-  dateOfBirth: Date
+  mainGoal: MainGoal
+  age: number
   gender: Gender
   heightCm: number
   weightKg: number
+  weightTargetKg: number
+  activityLevel: ActivityLevel
 }
 
 interface ProfileDataResult extends ProfileData {

@@ -50,13 +50,29 @@ enum Gender {
   female
 }
 
+enum MainGoal {
+  weightLoss
+  stayFit
+  buildMuscle
+}
+
+enum ActivityLevel {
+  low
+  medium
+  high
+  veryHigh
+}
+
 model Profile {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  dateOfBirth DateTime
-  gender      Gender
-  heightCm    Int
-  weightKg    Int
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  gender         Gender
+  mainGoal       MainGoal
+  age            Int
+  heightCm       Int
+  weightKg       Int
+  weightTargetKg Int
+  activityLevel  ActivityLevel
 
   userId String @unique @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
