@@ -1,6 +1,5 @@
-import type { FastingEntry } from '@prisma/client'
+import type { FastingCategory, FastingEntry } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
-import type { FastingCategory } from '../db.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
