@@ -10,8 +10,8 @@ interface FcmTokenData {
   token: string
 }
 
-@Route('step')
-@Tags('Step')
+@Route('fcm')
+@Tags('FCM')
 @Security('auth')
 @Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class FcmController extends Controller {
