@@ -1,8 +1,9 @@
 import type { ActivityLevel, Gender, MainGoal } from '@prisma/client'
 import type { Api } from '../api.js'
-import { Controller, Get, Middlewares, Route, Security, Tags } from 'tsoa'
+import { Body, Controller, Get, Middlewares, Post, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
 import { db } from '../db.js'
+import { fcm } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 
 type AdminProfileData = Array<{
@@ -16,6 +17,13 @@ type AdminProfileData = Array<{
   weightTargetKg: number
   activityLevel: ActivityLevel
 }>
+
+interface NotificationData {
+  token: string
+  title: string
+  body?: string
+  imageUrl?: string
+}
 
 @Route('admin')
 @Tags('Admin')
@@ -48,5 +56,19 @@ export class AdminController extends Controller {
     })
 
     return ok(r.map(({ profile, ...user }) => ({ ...user, ...profile! })))
+  }
+
+  /** Send a notification to a specified device token. */
+  @Post('/notification')
+  public async sendNotification(@Body() body: NotificationData): Api {
+    await fcm.send({
+      token: body.token,
+      notification: {
+        title: body.title,
+        body: body.body,
+        imageUrl: body.imageUrl,
+      },
+    })
+    return ok()
   }
 }

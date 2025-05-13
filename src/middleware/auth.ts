@@ -29,10 +29,7 @@ export async function expressAuthentication(req: AuthRequest, securityName: stri
       }
 
       const user = await db.user.findUnique({ where: { id: jwtUser.id } })
-      if (!user) {
-        throw new AuthError()
-      }
-      if (jwtUser.tokenVersion !== user.tokenVersion) {
+      if (!user || jwtUser.tokenVersion !== user.tokenVersion) {
         throw new AuthError()
       }
 
