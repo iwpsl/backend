@@ -21,8 +21,8 @@ type AdminProfileData = Array<{
 interface NotificationData {
   token: string
   title: string
-  body?: string
-  imageUrl?: string
+  body: string | null
+  imageUrl: string | null
 }
 
 @Route('admin')
@@ -65,8 +65,8 @@ export class AdminController extends Controller {
       token: body.token,
       notification: {
         title: body.title,
-        body: body.body,
-        imageUrl: body.imageUrl,
+        body: body.body ?? undefined,
+        imageUrl: body.imageUrl ?? undefined,
       },
     })
     return ok()
