@@ -1,14 +1,13 @@
-import type { Request } from 'express'
 import { PrismaClient } from '@prisma/client'
 import {
   Controller,
   Delete,
   Get,
   Path,
+  Request,
   Route,
   Security,
   Tags,
-  Request as TsoaRequest,
 } from 'tsoa'
 import { err } from '../api.js'
 
@@ -20,16 +19,12 @@ interface HistoryResponse {
   createdAt: Date
 }
 
-interface AuthRequest extends Request {
-  user?: { id: string }
-}
-
 @Route('user-history')
 @Tags('History')
 export class HistoryController extends Controller {
   @Get('/')
   @Security('auth')
-  async getUserHistory(@TsoaRequest() req: AuthRequest): Promise<HistoryResponse[]> {
+  async getUserHistory(@Request() req: any): Promise<HistoryResponse[]> {
     const userId = req.user?.id
     if (!userId) {
       throw err(401, 'unauthorized')
@@ -49,7 +44,7 @@ export class HistoryController extends Controller {
 
   @Delete('/')
   @Security('auth')
-  async deleteAllUserHistory(@TsoaRequest() req: AuthRequest): Promise<{ message: string }> {
+  async deleteAllUserHistory(@Request() req: any): Promise<{ message: string }> {
     const userId = req.user?.id
     if (!userId) {
       throw err(401, 'unauthorized')
@@ -63,7 +58,7 @@ export class HistoryController extends Controller {
   @Security('auth')
   async deleteHistoryById(
     @Path() historyId: string,
-    @TsoaRequest() req: AuthRequest,
+    @Request() req: any,
   ): Promise<{ message: string }> {
     const userId = req.user?.id
     if (!userId) {
