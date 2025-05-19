@@ -252,6 +252,12 @@ model WeightEntry {
   deletedAt DateTime?
 }
 
+model ChallengeCategory {
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
 enum VerificationAction {
   signup
   resetPassword
