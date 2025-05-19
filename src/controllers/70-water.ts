@@ -14,7 +14,7 @@ interface WaterJournalData {
   amountMl: number
 }
 
-interface WaterData {
+export interface WaterData {
   amountMl: number
 }
 
@@ -187,7 +187,7 @@ export class WaterController extends Controller {
   ): Api<WeeklyWaterJournalData> {
     const userId = req.user!.id
     const startDateOnly = getDateOnly(startDate)
-    const endDateOnly = df.addDays(startDate, 7)
+    const endDateOnly = df.addDays(startDateOnly, 7)
 
     const res = await db.waterEntry.findMany({
       where: {

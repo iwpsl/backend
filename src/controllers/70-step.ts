@@ -28,7 +28,7 @@ interface DailyStepJournalData extends StepJournalResultData {
   target: StepTargetData
 }
 
-interface StepSumData {
+export interface StepSumData {
   steps: number
   distanceKm: number
   activeMinutes: number

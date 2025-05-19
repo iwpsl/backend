@@ -20,9 +20,15 @@ interface FastingResultData extends FastingData {
   id?: UUID
 }
 
-interface WeeklyFastingData {
-  maxStreak: number
+export interface FastingCommonCategory {
   commonCategory?: FastingCategory
+}
+
+export interface WeeklyFastingData extends FastingCommonCategory {
+  maxStreak: number
+}
+
+interface WeeklyFastingResultData extends WeeklyFastingData {
   entries: (FastingResultData | null)[]
 }
 
@@ -147,7 +153,7 @@ export class FastingController extends Controller {
   public async getWeeklyFastingJournal(
     @Request() req: AuthRequest,
     @Path() startDate: Date,
-  ): Api<WeeklyFastingData> {
+  ): Api<WeeklyFastingResultData> {
     const userId = req.user!.id
     const startDateOnly = getDateOnly(startDate)
     const endDateOnly = df.addDays(startDate, 7)

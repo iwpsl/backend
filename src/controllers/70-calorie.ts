@@ -50,7 +50,7 @@ interface SearchData {
   products: ProductData[]
 }
 
-interface CalorieData {
+export interface CalorieData {
   energyKcal: number
   proteinGr: number
   carbohydrateGr: number
@@ -77,7 +77,7 @@ interface DailyCalorieJournalData {
   entries: CalorieJournalData[]
 }
 
-interface CalorieDataWithPercentage extends CalorieData {
+export interface CalorieDataWithPercentage extends CalorieData {
   proteinPercentage: number
   carbohydratePercentage: number
   fatPercentage: number
@@ -137,6 +137,35 @@ async function getHeader(userId: UUID, date: Date, createIfMissing: boolean, inc
   }
 
   return res
+}
+
+export function sumCalorie(entries: CalorieEntry[]): CalorieData {
+  return {
+    energyKcal: reduceSum(entries, it => it.energyKcal * it.portion),
+    carbohydrateGr: reduceSum(entries, it => it.carbohydrateGr * it.portion),
+    proteinGr: reduceSum(entries, it => it.proteinGr * it.portion),
+    fatGr: reduceSum(entries, it => it.fatGr * it.portion),
+    sugarGr: reduceSum(entries, it => it.sugarGr * it.portion),
+    sodiumMg: reduceSum(entries, it => it.sodiumMg * it.portion),
+  }
+}
+
+export function avgCalorie(entries: CalorieData[]): CalorieDataWithPercentage {
+  const average: CalorieData = {
+    energyKcal: reduceAvg(entries, it => it.energyKcal),
+    carbohydrateGr: reduceAvg(entries, it => it.carbohydrateGr),
+    proteinGr: reduceAvg(entries, it => it.proteinGr),
+    fatGr: reduceAvg(entries, it => it.fatGr),
+    sugarGr: reduceAvg(entries, it => it.sugarGr),
+    sodiumMg: reduceAvg(entries, it => it.sodiumMg),
+  }
+
+  return {
+    ...average,
+    carbohydratePercentage: average.carbohydrateGr * 4 / average.energyKcal * 100,
+    proteinPercentage: average.proteinGr * 4 / average.energyKcal * 100,
+    fatPercentage: average.fatGr * 9 / average.energyKcal * 100,
+  }
 }
 
 @Route('calorie')
@@ -290,21 +319,14 @@ export class CalorieController extends Controller {
 
     if (!res) {
       return ok({
-        total: { carbohydrateGr: 0, energyKcal: 0, fatGr: 0, proteinGr: 0, sodiumMg: 0, sugarGr: 0 },
+        total: sumCalorie([]),
         target: { energyKcal: 0 },
         entries: [],
       })
     }
 
     return ok({
-      total: {
-        energyKcal: reduceSum(res.entries, it => it.energyKcal * it.portion),
-        carbohydrateGr: reduceSum(res.entries, it => it.carbohydrateGr * it.portion),
-        proteinGr: reduceSum(res.entries, it => it.proteinGr * it.portion),
-        fatGr: reduceSum(res.entries, it => it.fatGr * it.portion),
-        sugarGr: reduceSum(res.entries, it => it.sugarGr * it.portion),
-        sodiumMg: reduceSum(res.entries, it => it.sodiumMg * it.portion),
-      },
+      total: sumCalorie(res.entries),
       target: res.target,
       entries: res.entries,
     })
@@ -319,7 +341,7 @@ export class CalorieController extends Controller {
     const userId = req.user!.id
     const startDateOnly = getDateOnly(startDate)
 
-    const allDateOnly = Array.from({ length: 7 }, (_v, i) => df.addDays(startDate, i))
+    const allDateOnly = Array.from({ length: 7 }, (_v, i) => df.addDays(startDateOnly, i))
     const res = await Promise.all(allDateOnly.map(it => getHeader(userId, it, false, true)))
 
     const headers = nullArray<(typeof res)[0]>(7)
@@ -333,35 +355,14 @@ export class CalorieController extends Controller {
       }
     }
 
-    const entries: (CalorieData | null)[] = headers.map(res => res
-      ? {
-          energyKcal: reduceSum(res.entries, it => it.energyKcal * it.portion),
-          carbohydrateGr: reduceSum(res.entries, it => it.carbohydrateGr * it.portion),
-          proteinGr: reduceSum(res.entries, it => it.proteinGr * it.portion),
-          fatGr: reduceSum(res.entries, it => it.fatGr * it.portion),
-          sugarGr: reduceSum(res.entries, it => it.sugarGr * it.portion),
-          sodiumMg: reduceSum(res.entries, it => it.sodiumMg * it.portion),
-        }
+    const entries: (CalorieData | null)[] = headers.map(it => it
+      ? sumCalorie(it.entries)
       : null)
 
     const nonNullableEntries = entries.filter(it => it) as CalorieData[]
-    const average: CalorieData = {
-      energyKcal: reduceAvg(nonNullableEntries, it => it.energyKcal),
-      carbohydrateGr: reduceAvg(nonNullableEntries, it => it.carbohydrateGr),
-      proteinGr: reduceAvg(nonNullableEntries, it => it.proteinGr),
-      fatGr: reduceAvg(nonNullableEntries, it => it.fatGr),
-      sugarGr: reduceAvg(nonNullableEntries, it => it.sugarGr),
-      sodiumMg: reduceAvg(nonNullableEntries, it => it.sodiumMg),
-    }
-
     return ok({
       entries,
-      average: {
-        ...average,
-        carbohydratePercentage: average.carbohydrateGr * 4 / average.energyKcal * 100,
-        proteinPercentage: average.proteinGr * 4 / average.energyKcal * 100,
-        fatPercentage: average.fatGr * 9 / average.energyKcal * 100,
-      },
+      average: avgCalorie(nonNullableEntries),
     })
   }
 
