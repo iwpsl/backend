@@ -4,7 +4,7 @@ import type { AuthRequest } from '../middleware/auth.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
-import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
@@ -76,7 +76,15 @@ export class ProfileController extends Controller {
       .jpeg({ quality: 80 })
       .toFile(imgPath)
 
-    console.log(imgPath)
+    return ok()
+  }
+
+  @Delete('/avatar')
+  public async deleteAvatar(
+    @Request() req: AuthRequest,
+  ): Api {
+    const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
+    await fs.rm(imgPath, { force: true })
     return ok()
   }
 }
