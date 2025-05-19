@@ -174,6 +174,19 @@ CREATE TABLE "FastingEntry" (
 );
 
 -- CreateTable
+CREATE TABLE "WeightEntry" (
+    "id" UUID NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "weightKg" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "WeightEntry_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PendingVerification" (
     "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
@@ -241,3 +254,6 @@ ALTER TABLE "StepEntry" ADD CONSTRAINT "StepEntry_targetId_fkey" FOREIGN KEY ("t
 
 -- AddForeignKey
 ALTER TABLE "FastingEntry" ADD CONSTRAINT "FastingEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WeightEntry" ADD CONSTRAINT "WeightEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

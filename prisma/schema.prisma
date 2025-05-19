@@ -41,6 +41,7 @@ model User {
   step          StepEntry[]
   stepTarget    StepTarget[]
   fasting       FastingEntry[]
+  weight        WeightEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -229,6 +230,19 @@ model FastingEntry {
   startTime  DateTime
   endTime    DateTime
   finishedAt DateTime?
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model WeightEntry {
+  id       String   @id @default(uuid()) @db.Uuid
+  date     DateTime
+  weightKg Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
