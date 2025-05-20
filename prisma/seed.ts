@@ -25,6 +25,7 @@ async function up() {
         password: await bcryptHash('test'),
         isVerified: true,
         authType: 'email',
+        xp: faker.number.int({ min: 100, max: 1000, multipleOf: 10 }),
       },
     })
 

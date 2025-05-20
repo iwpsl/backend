@@ -5,7 +5,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { df, getDateOnly, reduceSum } from '../utils.js'
+import { baseUrl, df, getDateOnly, reduceSum } from '../utils.js'
 
 interface ChallengeData {
   id: UUID
@@ -28,11 +28,23 @@ interface ChallengeDetailsData extends ChallengeData {
   tasks: ChallengeTask[]
 }
 
+interface XpData {
+  xp: number
+  rank: number
+}
+
+interface RankingData extends XpData {
+  userId: UUID
+  name: string
+  avatarUrl: string
+}
+
 @Route('challenge')
 @Tags('Challenge')
 @Security('auth')
 @Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class ChallengeController extends Controller {
+  /** Get all available challenges */
   @Get('/all')
   public async getChallenges(
     @Request() req: AuthRequest,
@@ -64,6 +76,7 @@ export class ChallengeController extends Controller {
     )
   }
 
+  /** Get challenge details such as tasks */
   @Get('/details/{challengeId}')
   public async getChallengeDetails(
     @Request() req: AuthRequest,
@@ -118,6 +131,7 @@ export class ChallengeController extends Controller {
     })
   }
 
+  /** Join a challenge */
   @Post('/join/{challengeId}')
   public async joinChallenge(
     @Request() req: AuthRequest,
@@ -156,6 +170,7 @@ export class ChallengeController extends Controller {
     return ok()
   }
 
+  /** Finish a challenge task */
   @Post('/task/finish/{taskId}')
   public async finishTask(
     @Request() req: AuthRequest,
@@ -203,21 +218,75 @@ export class ChallengeController extends Controller {
       return err(403, 'forbidden')
     }
 
-    await db.finishedChallengeTask.create({
-      data: {
-        subId: sub.id,
-        taskId,
-      },
+    await db.$transaction(async (tx) => {
+      await tx.finishedChallengeTask.create({
+        data: {
+          subId: sub.id,
+          taskId,
+        },
+      })
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          xp: { increment: 10 },
+        },
+      })
+
+      // also finish the sub if it is the last task
+      if (sub._count.finishedTasks === (task.challenge._count.tasks - 1)) {
+        await tx.challengeSubscription.update({
+          where: { id: sub.id },
+          data: { finished: true },
+        })
+      }
     })
 
-    // also finish the sub if it is the last task
-    if (sub._count.finishedTasks === (task.challenge._count.tasks - 1)) {
-      await db.challengeSubscription.update({
-        where: { id: sub.id },
-        data: { finished: true },
-      })
-    }
-
     return ok()
+  }
+
+  /** Get user xp */
+  @Get('/xp')
+  public async getXp(
+    @Request() req: AuthRequest,
+  ): Api<XpData> {
+    const userId = req.user!.id
+
+    // yuck
+    const res = await db.$queryRaw`
+      SELECT xp, rank FROM (
+        SELECT id,
+               ROW_NUMBER() OVER (ORDER BY xp DESC) AS rank,
+               xp
+        FROM "User"
+      ) AS ranked_users
+      WHERE id = ${userId}::uuid;
+    ` as { xp: number, rank: bigint }[]
+
+    console.log(res)
+
+    return ok({
+      xp: res.at(0)?.xp ?? 0,
+      rank: Number(res.at(0)?.rank) ?? 0,
+    })
+  }
+
+  /** Get current top 50 users */
+  @Get('/rank/global')
+  public async getGlobalRanking(): Api<RankingData[]> {
+    const ranking = await db.user.findMany({
+      where: { profile: { isNot: null } },
+      include: { profile: true },
+      orderBy: { xp: 'desc' },
+      take: 50,
+    })
+
+    return ok(ranking.map((it, i) => ({
+      userId: it.id,
+      name: it.profile!.name,
+      avatarUrl: `${baseUrl}/avatars/${it.id}.jpg`,
+      xp: it.xp,
+      rank: i + 1,
+    })))
   }
 }
