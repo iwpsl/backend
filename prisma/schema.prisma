@@ -31,6 +31,7 @@ model User {
   isVerified   Boolean  @default(false)
   tokenVersion Int      @default(0)
   fcmToken     String?
+  xp           Int      @default(0)
 
   profile       Profile?
   calorie       CalorieHeader[]
@@ -42,6 +43,7 @@ model User {
   stepTarget    StepTarget[]
   fasting       FastingEntry[]
   weight        WeightEntry[]
+  challengeSubs ChallengeSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -250,6 +252,57 @@ model WeightEntry {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+}
+
+model Challenge {
+  id          String @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  imageUrl    String
+
+  tasks ChallengeTask[]
+  subs  ChallengeSubscription[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model ChallengeTask {
+  id          String @id @default(uuid()) @db.Uuid
+  description String
+  day         Int
+
+  challengeId String    @db.Uuid
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  finished FinishedChallengeTask[]
+}
+
+model ChallengeSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  startDate DateTime
+  finished  Boolean  @default(false)
+
+  challengeId String    @db.Uuid
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  finishedTasks FinishedChallengeTask[]
+}
+
+model FinishedChallengeTask {
+  id String @id @default(uuid()) @db.Uuid
+
+  subId String                @db.Uuid
+  sub   ChallengeSubscription @relation(fields: [subId], references: [id], onDelete: Cascade)
+
+  taskId String        @db.Uuid
+  task   ChallengeTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([subId, taskId])
 }
 
 enum VerificationAction {

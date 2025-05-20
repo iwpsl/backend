@@ -32,6 +32,7 @@ CREATE TABLE "User" (
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "tokenVersion" INTEGER NOT NULL DEFAULT 0,
     "fcmToken" TEXT,
+    "xp" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -187,6 +188,49 @@ CREATE TABLE "WeightEntry" (
 );
 
 -- CreateTable
+CREATE TABLE "Challenge" (
+    "id" UUID NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "imageUrl" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Challenge_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeTask" (
+    "id" UUID NOT NULL,
+    "description" TEXT NOT NULL,
+    "day" INTEGER NOT NULL,
+    "challengeId" UUID NOT NULL,
+
+    CONSTRAINT "ChallengeTask_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChallengeSubscription" (
+    "id" UUID NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "finished" BOOLEAN NOT NULL DEFAULT false,
+    "challengeId" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+
+    CONSTRAINT "ChallengeSubscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "FinishedChallengeTask" (
+    "id" UUID NOT NULL,
+    "subId" UUID NOT NULL,
+    "taskId" UUID NOT NULL,
+
+    CONSTRAINT "FinishedChallengeTask_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PendingVerification" (
     "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
@@ -212,6 +256,9 @@ CREATE UNIQUE INDEX "WaterEntry_userId_date_key" ON "WaterEntry"("userId", "date
 
 -- CreateIndex
 CREATE UNIQUE INDEX "StepEntry_userId_date_key" ON "StepEntry"("userId", "date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FinishedChallengeTask_subId_taskId_key" ON "FinishedChallengeTask"("subId", "taskId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("email");
@@ -257,3 +304,18 @@ ALTER TABLE "FastingEntry" ADD CONSTRAINT "FastingEntry_userId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "WeightEntry" ADD CONSTRAINT "WeightEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeTask" ADD CONSTRAINT "ChallengeTask_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeSubscription" ADD CONSTRAINT "ChallengeSubscription_challengeId_fkey" FOREIGN KEY ("challengeId") REFERENCES "Challenge"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChallengeSubscription" ADD CONSTRAINT "ChallengeSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FinishedChallengeTask" ADD CONSTRAINT "FinishedChallengeTask_subId_fkey" FOREIGN KEY ("subId") REFERENCES "ChallengeSubscription"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FinishedChallengeTask" ADD CONSTRAINT "FinishedChallengeTask_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "ChallengeTask"("id") ON DELETE CASCADE ON UPDATE CASCADE;
