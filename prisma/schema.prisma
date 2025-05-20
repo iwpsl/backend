@@ -184,7 +184,6 @@ model WaterEntry {
 model StepTarget {
   id         String @id @default(uuid()) @db.Uuid
   steps      Int
-  distanceKm Float
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -17,7 +17,6 @@ interface StepJournalData {
 
 interface StepTargetData {
   steps: number
-  distanceKm: number
 }
 
 interface StepJournalResultData extends StepJournalData {
@@ -183,7 +182,6 @@ export class StepController extends Controller {
       distanceKm: res.distanceKm,
       target: {
         steps: res.target.steps,
-        distanceKm: res.target.distanceKm,
       },
     })
   }

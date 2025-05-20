@@ -109,7 +109,6 @@ async function up() {
       data: {
         userId: user.id,
         steps: faker.number.int({ min: 3000, max: 12000 }),
-        distanceKm: faker.number.float({ min: 0, max: 10, fractionDigits: 2 }),
       },
     })
 
