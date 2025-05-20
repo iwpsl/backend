@@ -16,10 +16,15 @@ interface OffBase {
 
 interface OffProduct {
   code: string
-  product_name: string
-  image_url: string
-  nutriments: {
-    'energy-kcal': number
+  product_name?: string
+  image_url?: string
+  nutriments?: {
+    'energy-kcal'?: number
+    'proteins'?: number
+    'carbohydrates'?: number
+    'fat'?: number
+    'sugars'?: number
+    'sodium'?: number
   }
 }
 
@@ -40,9 +45,14 @@ function getSearchUrl(terms: string) {
 
 interface ProductData {
   code: string
-  productName: string
-  calorie: number
-  imgUrl: string
+  productName: string | null
+  imgUrl: string | null
+  energyKcal: number | null
+  proteinGr: number | null
+  carbohydrateGr: number | null
+  fatGr: number | null
+  sugarGr: number | null
+  sodiumMg: number | null
 }
 
 interface SearchData {
@@ -185,9 +195,14 @@ export class CalorieController extends Controller {
 
     return ok({
       code: data.product.code,
-      productName: data.product.product_name,
-      calorie: data.product.nutriments['energy-kcal'],
-      imgUrl: data.product.image_url,
+      productName: data.product.product_name ?? null,
+      imgUrl: data.product.image_url ?? null,
+      energyKcal: data.product.nutriments?.['energy-kcal'] ?? null,
+      proteinGr: data.product.nutriments?.proteins ?? null,
+      carbohydrateGr: data.product.nutriments?.carbohydrates ?? null,
+      fatGr: data.product.nutriments?.fat ?? null,
+      sodiumMg: data.product.nutriments?.sodium ?? null,
+      sugarGr: data.product.nutriments?.sugars ?? null,
     })
   }
 
@@ -204,10 +219,15 @@ export class CalorieController extends Controller {
       page: data.page,
       products: data.products.map(it => ({
         code: it.code,
-        productName: it.product_name,
-        calorie: it.nutriments['energy-kcal'],
-        imgUrl: it.image_url,
-      })).filter(it => it.calorie),
+        productName: it.product_name ?? null,
+        imgUrl: it.image_url ?? null,
+        energyKcal: it.nutriments?.['energy-kcal'] ?? null,
+        proteinGr: it.nutriments?.proteins ?? null,
+        carbohydrateGr: it.nutriments?.carbohydrates ?? null,
+        fatGr: it.nutriments?.fat ?? null,
+        sodiumMg: it.nutriments?.sodium ?? null,
+        sugarGr: it.nutriments?.sugars ?? null,
+      })).filter(it => it.energyKcal),
     })
   }
 
