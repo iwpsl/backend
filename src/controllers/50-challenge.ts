@@ -1,11 +1,11 @@
 import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
-import { Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
+import { Controller, Get, Middlewares, Path, Post, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly, reduceSum } from '../utils.js'
+import { df, getDateOnly, reduceSum } from '../utils.js'
 
 interface ChallengeData {
   id: UUID
@@ -160,7 +160,6 @@ export class ChallengeController extends Controller {
   public async finishTask(
     @Request() req: AuthRequest,
     @Path() taskId: UUID,
-    @Query() v: boolean,
   ): Api {
     const userId = req.user!.id
 
@@ -169,18 +168,22 @@ export class ChallengeController extends Controller {
         id: taskId,
       },
       include: {
-        _count: {
-          select: {
-            finished: {
-              where: {
-                sub: { userId, finished: false },
-              },
+        _count: { select: {
+          finished: {
+            where: {
+              sub: { userId, finished: false },
             },
           },
-        },
+        } },
         challenge: {
           include: {
-            subs: { where: { userId, finished: false } },
+            _count: { select: { tasks: true } },
+            subs: {
+              where: { userId, finished: false },
+              include: {
+                _count: { select: { finishedTasks: true } },
+              },
+            },
           },
         },
       },
@@ -190,31 +193,28 @@ export class ChallengeController extends Controller {
       return err(404, 'not-found')
     }
 
-    const wasFinished = task._count.finished > 0
-    if (wasFinished === v) {
-      return err(403, 'forbidden')
-    }
-
     const sub = task.challenge.subs.at(0)
-    if (!sub) {
+    if (!sub || task._count.finished > 0) {
       return err(403, 'forbidden')
     }
 
-    if (v) {
-      await db.finishedChallengeTask.delete({
-        where: {
-          subId_taskId: {
-            subId: sub.id,
-            taskId,
-          },
-        },
-      })
-    } else {
-      await db.finishedChallengeTask.create({
-        data: {
-          subId: sub.id,
-          taskId,
-        },
+    const dayDiff = df.differenceInDays(getDateOnly(new Date()), sub.startDate)
+    if (dayDiff !== task.day) {
+      return err(403, 'forbidden')
+    }
+
+    await db.finishedChallengeTask.create({
+      data: {
+        subId: sub.id,
+        taskId,
+      },
+    })
+
+    // also finish the sub if it is the last task
+    if (sub._count.finishedTasks === (task.challenge._count.tasks - 1)) {
+      await db.challengeSubscription.update({
+        where: { id: sub.id },
+        data: { finished: true },
       })
     }
 
