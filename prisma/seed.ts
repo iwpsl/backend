@@ -1,3 +1,4 @@
+import type { ChallengeTask } from '@prisma/client'
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
 import { ActivityLevel, FastingCategory, Gender, MainGoal, MealType } from '@prisma/client'
@@ -176,6 +177,58 @@ async function up() {
         },
       })
     }
+  }
+
+  for (let i = 0; i < 3; ++i) {
+    const challenge = await db.challenge.create({
+      data: {
+        title: faker.word.words({ count: { min: 2, max: 4 } }),
+        description: faker.lorem.paragraph(),
+        imageUrl: faker.image.url({ width: 200, height: 200 }),
+      },
+    })
+
+    const taskPromises: Promise<ChallengeTask>[] = []
+    for (let day = 0; day < 7; ++day) {
+      for (let j = 0; j < 4; ++j) {
+        taskPromises.push(db.challengeTask.create({
+          data: {
+            day,
+            challengeId: challenge.id,
+            description: faker.word.words({ count: { min: 3, max: 5 } }),
+          },
+        }))
+      }
+    }
+
+    await Promise.all(taskPromises)
+  }
+
+  const users = await db.user.findMany()
+  const challenges = await db.challenge.findMany({
+    include: {
+      tasks: {
+        orderBy: { day: 'asc' },
+      },
+    },
+  })
+
+  for (const user of users) {
+    const userChallenge = faker.helpers.arrayElement(challenges)
+    const sub = await db.challengeSubscription.create({
+      data: {
+        userId: user.id,
+        challengeId: userChallenge.id,
+        startDate: getDateOnly(new Date()),
+      },
+    })
+
+    await db.finishedChallengeTask.create({
+      data: {
+        subId: sub.id,
+        taskId: userChallenge.tasks[0].id,
+      },
+    })
   }
 
   await db.user.create({
