@@ -20,6 +20,9 @@ CREATE TYPE "MealType" AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
 CREATE TYPE "FastingCategory" AS ENUM ('fast16eat08', 'fast18eat06', 'fast14eat10', 'fast12eat12', 'fast13eat11', 'fast15eat09', 'custom');
 
 -- CreateEnum
+CREATE TYPE "ChallengeCategory" AS ENUM ('workout', 'food', 'fast');
+
+-- CreateEnum
 CREATE TYPE "VerificationAction" AS ENUM ('signup', 'resetPassword');
 
 -- CreateTable
@@ -191,7 +194,7 @@ CREATE TABLE "Challenge" (
     "id" UUID NOT NULL,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
-    "imageUrl" TEXT NOT NULL,
+    "category" "ChallengeCategory" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "deletedAt" TIMESTAMP(3),

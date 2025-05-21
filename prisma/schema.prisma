@@ -182,8 +182,8 @@ model WaterEntry {
 }
 
 model StepTarget {
-  id         String @id @default(uuid()) @db.Uuid
-  steps      Int
+  id    String @id @default(uuid()) @db.Uuid
+  steps Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -253,11 +253,17 @@ model WeightEntry {
   deletedAt DateTime?
 }
 
+enum ChallengeCategory {
+  workout
+  food
+  fast
+}
+
 model Challenge {
-  id          String @id @default(uuid()) @db.Uuid
+  id          String            @id @default(uuid()) @db.Uuid
   title       String
   description String
-  imageUrl    String
+  category    ChallengeCategory
 
   tasks ChallengeTask[]
   subs  ChallengeSubscription[]
