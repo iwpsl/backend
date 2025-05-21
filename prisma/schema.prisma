@@ -30,7 +30,7 @@ model User {
   role         Role     @default(user)
   isVerified   Boolean  @default(false)
   tokenVersion Int      @default(0)
-  fcmToken     String?
+  fcmToken     String?  @unique
   xp           Int      @default(0)
 
   profile       Profile?

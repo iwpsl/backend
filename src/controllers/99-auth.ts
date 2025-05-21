@@ -262,6 +262,7 @@ export class AuthController extends Controller {
       where: { id: req.user!.id },
       data: {
         tokenVersion: { increment: 1 },
+        fcmToken: null,
       },
     })
 

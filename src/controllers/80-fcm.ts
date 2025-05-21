@@ -23,6 +23,11 @@ export class FcmController extends Controller {
   ): Api {
     const userId = req.user!.id
 
+    await db.user.updateMany({
+      where: { fcmToken: body.token },
+      data: { fcmToken: null },
+    })
+
     await db.user.update({
       where: { id: userId },
       data: { fcmToken: body.token },
