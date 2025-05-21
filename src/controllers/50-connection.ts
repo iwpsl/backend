@@ -3,19 +3,15 @@ import type { AuthRequest } from '../middleware/auth.js'
 import { Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
+import { fcm } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { baseUrl } from '../utils.js'
 
-interface FriendRequestData {
+interface FriendData {
   userId: UUID
   name: string
   avatarUrl: string
-}
-
-enum FriendRequestAction {
-  accept,
-  deny,
 }
 
 @Route('connection')
@@ -23,10 +19,39 @@ enum FriendRequestAction {
 @Security('auth')
 @Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class ConnectionController extends Controller {
-  @Get('/request')
-  public async getFriendRequests(
+  /** Get all friends. */
+  @Get('/all')
+  public async getAllFriends(
     @Request() req: AuthRequest,
-  ): Api<FriendRequestData[]> {
+  ): Api<FriendData[]> {
+    const userId = req.user!.id
+
+    const res = await db.userConnection.findMany({
+      where: { OR: [
+        { aId: userId },
+        { bId: userId },
+      ] },
+      include: {
+        a: { include: { profile: true } },
+        b: { include: { profile: true } },
+      },
+    })
+
+    return ok(res.map((it) => {
+      const friend = it.a.id === userId ? it.b : it.a
+      return {
+        userId: friend.id,
+        name: friend.profile!.name,
+        avatarUrl: `${baseUrl}/avatars/${friend.id}.jpg`,
+      }
+    }))
+  }
+
+  /** Get all received friend requests. */
+  @Get('/received')
+  public async getReceivedFriendRequests(
+    @Request() req: AuthRequest,
+  ): Api<FriendData[]> {
     const userId = req.user!.id
 
     const res = await db.connectionRequest.findMany({
@@ -39,6 +64,9 @@ export class ConnectionController extends Controller {
           include: { profile: true },
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     })
 
     return ok(res.map(it => ({
@@ -48,16 +76,99 @@ export class ConnectionController extends Controller {
     })))
   }
 
-  @Post('/request/{requestId}')
-  public async friendRequestAction(
+  /** Get all sent friend requests. */
+  @Get('/sent')
+  public async getSentFriendRequests(
     @Request() req: AuthRequest,
-    @Path() requestId: UUID,
-    @Query() action: FriendRequestAction,
+  ): Api<FriendData[]> {
+    const userId = req.user!.id
+
+    const res = await db.connectionRequest.findMany({
+      where: {
+        fromId: userId,
+        from: { profile: { isNot: null } },
+      },
+      include: {
+        to: {
+          include: { profile: true },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return ok(res.map(it => ({
+      userId: it.to.id,
+      name: it.to.profile!.name,
+      avatarUrl: `${baseUrl}/avatars/${it.to.id}.jpg`,
+    })))
+  }
+
+  /** Send a friend request. */
+  @Post('/send/{targetUserId}')
+  public async sendFriendRequest(
+    @Request() req: AuthRequest,
+    @Path() targetUserId: UUID,
+  ): Api {
+    const userId = req.user!.id
+    if (userId === targetUserId) {
+      return err(403, 'forbidden')
+    }
+
+    const targetUser = await db.user.findUnique({
+      where: {
+        id: targetUserId,
+        profile: { isNot: null },
+      },
+      include: { profile: true },
+    })
+    if (!targetUser) {
+      return err(404, 'not-found')
+    }
+
+    const requested = await db.connectionRequest.findUnique({
+      where: { fromId_toId: { fromId: userId, toId: targetUserId } },
+    })
+    if (requested) {
+      return err(403, 'forbidden')
+    }
+
+    const theyRequested = await db.connectionRequest.findUnique({
+      where: { fromId_toId: { fromId: targetUserId, toId: userId } },
+    })
+    if (theyRequested) {
+      return err(403, 'forbidden')
+    }
+
+    await db.connectionRequest.create({
+      data: { fromId: userId, toId: targetUserId },
+    })
+
+    if (targetUser.fcmToken) {
+      await fcm.send({
+        token: targetUser.fcmToken,
+        notification: {
+          title: 'Friend Request',
+          body: `${targetUser.profile!.name} requested you to be your friend!`,
+        },
+      })
+    }
+
+    return ok()
+  }
+
+  /** Accept (or deny) a friend request. */
+  @Post('/accept/{fromUserId}')
+  public async acceptFriendRequest(
+    @Request() req: AuthRequest,
+    @Path() fromUserId: UUID,
+    @Query() accept: boolean,
   ): Api {
     const userId = req.user!.id
 
     const res = await db.connectionRequest.findUnique({
-      where: { id: requestId },
+      where: { fromId_toId: { fromId: fromUserId, toId: userId } },
     })
 
     if (!res) {
@@ -69,7 +180,7 @@ export class ConnectionController extends Controller {
     }
 
     await db.$transaction(async (tx) => {
-      if (action === FriendRequestAction.accept) {
+      if (accept) {
         const [aId, bId] = [res.fromId, res.toId].sort()
 
         await tx.userConnection.upsert({
@@ -80,9 +191,29 @@ export class ConnectionController extends Controller {
       }
 
       await tx.connectionRequest.delete({
-        where: { id: requestId },
+        where: { fromId_toId: { fromId: fromUserId, toId: userId } },
       })
     })
+
+    return ok()
+  }
+
+  /** Remove a friend. */
+  @Post('/unfriend/{friendUserId}')
+  public async unfriend(
+    @Request() req: AuthRequest,
+    @Path() friendUserId: UUID,
+  ): Api {
+    const userId = req.user!.id
+    const [aId, bId] = [userId, friendUserId].sort()
+
+    try {
+      await db.userConnection.delete({
+        where: { aId_bId: { aId, bId } },
+      })
+    } catch {
+      return err(404, 'not-found')
+    }
 
     return ok()
   }
