@@ -1,3 +1,4 @@
+import type { ChallengeCategory } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Controller, Get, Middlewares, Path, Post, Request, Route, Security, Tags } from 'tsoa'
@@ -11,7 +12,7 @@ interface ChallengeData {
   id: UUID
   title: string
   description: string
-  imageUrl: string
+  category: ChallengeCategory
   taskCount: number
   joined: boolean
   progress: number
@@ -68,7 +69,7 @@ export class ChallengeController extends Controller {
       id: it.id,
       title: it.title,
       description: it.description,
-      imageUrl: it.imageUrl,
+      category: it.category,
       taskCount: it._count.tasks,
       joined: it.subs.at(0) !== undefined,
       progress: it.subs.at(0)?._count?.finishedTasks ?? 0,
@@ -118,7 +119,7 @@ export class ChallengeController extends Controller {
       id: res.id,
       title: res.title,
       description: res.description,
-      imageUrl: res.imageUrl,
+      category: res.category,
       taskCount: res.tasks.length,
       joined: res._count.subs > 0,
       progress,

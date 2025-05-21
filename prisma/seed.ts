@@ -1,7 +1,7 @@
 import type { ChallengeTask } from '@prisma/client'
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { ActivityLevel, FastingCategory, Gender, MainGoal, MealType } from '@prisma/client'
+import { ActivityLevel, ChallengeCategory, FastingCategory, Gender, MainGoal, MealType } from '@prisma/client'
 import { bcryptHash } from '../src/crypto.js'
 import { db } from '../src/db.js'
 import { df, getDateOnly } from '../src/utils.js'
@@ -179,12 +179,13 @@ async function up() {
     }
   }
 
-  for (let i = 0; i < 3; ++i) {
+  const categories = Object.values(ChallengeCategory)
+  for (const category of categories) {
     const challenge = await db.challenge.create({
       data: {
         title: faker.word.words({ count: { min: 2, max: 4 } }),
         description: faker.lorem.paragraph(),
-        imageUrl: faker.image.url({ width: 200, height: 200 }),
+        category,
       },
     })
 
