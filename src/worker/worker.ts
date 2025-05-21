@@ -11,9 +11,16 @@ type JobHandlers = {
 
 const jobHandlers: JobHandlers = {
   async fastingFinisher({ id, finishedAt }) {
-    await db.fastingEntry.update({
-      where: { id },
+    await db.fastingEntry.updateMany({
+      where: { id, finishedAt: null },
       data: { finishedAt },
+    })
+  },
+
+  async challengeFinisher({ id }) {
+    await db.challengeSubscription.updateMany({
+      where: { id, finished: false },
+      data: { finished: true },
     })
   },
 

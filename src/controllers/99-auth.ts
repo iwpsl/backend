@@ -1,7 +1,8 @@
-import type { Role, VerificationAction } from '@prisma/client'
+import type { VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
+import { Role } from '@prisma/client'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
@@ -92,7 +93,7 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   }
 
   if (email !== jwt.email) {
-    return err(403, 'forbidden')
+    return err(403, 'invalid-code')
   }
 
   const pending = await db.pendingVerification.findUnique({ where: { email } })
@@ -109,7 +110,6 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
 }
 
 // TODO: Field verification
-//       Restrict creating admin user
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
@@ -125,10 +125,20 @@ export class AuthController extends Controller {
   public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
 
-    // Email regex validation
+    if (role === Role.admin) {
+      return err(403, 'forbidden')
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format')
+      return err(401, 'validation-error', {
+        validationErrors: {
+          email: {
+            message: 'Invalid email format',
+            value: email,
+          },
+        },
+      })
     }
 
     const user = await db.user.create({
@@ -203,7 +213,7 @@ export class AuthController extends Controller {
       return err(401, 'invalid-credentials')
     }
     if (user.authType !== 'email') {
-      return err(403, 'forbidden')
+      return err(403, 'auth-invalid-login-method')
     }
 
     const validPassword = await bcryptCompare(password, user.password!)
@@ -281,7 +291,7 @@ export class AuthController extends Controller {
       return err(404, 'not-found')
     }
     if (user.authType !== 'email') {
-      return err(403, 'forbidden')
+      return err(403, 'auth-invalid-login-method')
     }
 
     const code = await genVerificationCode(email, 'resetPassword')

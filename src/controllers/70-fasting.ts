@@ -50,6 +50,20 @@ export class FastingController extends Controller {
   ): Api<FastingResultData> {
     const userId = req.user!.id
 
+    const existing = await db.fastingEntry.findFirst({
+      where: {
+        userId,
+        finishedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    if (existing) {
+      return err(403, 'fasting-already-running')
+    }
+
     const res = await db.fastingEntry.create({
       data: {
         userId,

@@ -273,9 +273,6 @@ export class AdminController extends Controller {
           lt: endDateOnly,
         },
       },
-      include: {
-        target: true,
-      },
     })
 
     return ok({

@@ -68,6 +68,14 @@ export class ProfileController extends Controller {
     @Request() req: AuthRequest,
     @UploadedFile() file: Express.Multer.File,
   ): Api {
+    if (!file.mimetype.startsWith('image/')) {
+      return err(400, 'invalid-file-type')
+    }
+
+    if (file.size > 5_000_000) {
+      return err(413, 'file-too-large')
+    }
+
     const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
     await fs.mkdir(path.dirname(imgPath), { recursive: true })
 

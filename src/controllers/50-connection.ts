@@ -131,14 +131,14 @@ export class ConnectionController extends Controller {
       where: { fromId_toId: { fromId: userId, toId: targetUserId } },
     })
     if (requested) {
-      return err(403, 'forbidden')
+      return err(403, 'connection-already-requested')
     }
 
     const theyRequested = await db.connectionRequest.findUnique({
       where: { fromId_toId: { fromId: targetUserId, toId: userId } },
     })
     if (theyRequested) {
-      return err(403, 'forbidden')
+      return err(403, 'connection-they-requested')
     }
 
     await db.connectionRequest.create({
@@ -176,7 +176,7 @@ export class ConnectionController extends Controller {
     }
 
     if (res.toId !== userId) {
-      return err(403, 'forbidden')
+      return err(403, 'connection-not-for-you')
     }
 
     await db.$transaction(async (tx) => {

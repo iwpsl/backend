@@ -19,6 +19,21 @@ export type ApiError =
   | 'invalid-action'
   | 'expired-code'
   | 'invalid-code'
+  | 'invalid-file-type'
+  | 'file-too-large'
+  // challenges
+  | 'challenge-already-joined'
+  | 'challenge-not-joined'
+  | 'task-wrong-day'
+  | 'task-already-finished'
+  // connection
+  | 'connection-already-requested'
+  | 'connection-they-requested'
+  | 'connection-not-for-you'
+  // fasting
+  | 'fasting-already-running'
+  // auth
+  | 'auth-invalid-login-method'
 
 export interface ApiRes<T = {}> {
   success: boolean

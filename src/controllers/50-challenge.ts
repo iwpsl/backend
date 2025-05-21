@@ -7,6 +7,7 @@ import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { baseUrl, df, getDateOnly, reduceSum } from '../utils.js'
+import { enqueueWork } from '../worker/queue.js'
 
 interface ChallengeData {
   id: UUID
@@ -157,16 +158,28 @@ export class ChallengeController extends Controller {
     }
 
     if (challenge._count.subs > 0) {
-      return err(403, 'forbidden')
+      return err(403, 'challenge-already-joined')
     }
 
-    await db.challengeSubscription.create({
+    const startDate = getDateOnly(new Date())
+    const sub = await db.challengeSubscription.create({
       data: {
         userId,
         challengeId: challenge.id,
-        startDate: getDateOnly(new Date()),
+        startDate,
       },
     })
+
+    const challengeLength = await db.challengeTask.aggregate({
+      _max: { day: true },
+      where: { challengeId: challenge.id },
+    })
+
+    enqueueWork(
+      df.addDays(startDate, challengeLength._max.day!),
+      'challengeFinisher',
+      { id: sub.id },
+    )
 
     return ok()
   }
@@ -210,13 +223,17 @@ export class ChallengeController extends Controller {
     }
 
     const sub = task.challenge.subs.at(0)
-    if (!sub || task._count.finished > 0) {
-      return err(403, 'forbidden')
+    if (!sub) {
+      return err(403, 'challenge-not-joined')
+    }
+
+    if (task._count.finished > 0) {
+      return err(403, 'task-already-finished')
     }
 
     const dayDiff = df.differenceInDays(getDateOnly(new Date()), sub.startDate)
     if (dayDiff !== task.day) {
-      return err(403, 'forbidden')
+      return err(403, 'task-wrong-day')
     }
 
     await db.$transaction(async (tx) => {
