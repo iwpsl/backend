@@ -233,6 +233,25 @@ CREATE TABLE "FinishedChallengeTask" (
 );
 
 -- CreateTable
+CREATE TABLE "UserConnection" (
+    "id" UUID NOT NULL,
+    "aId" UUID NOT NULL,
+    "bId" UUID NOT NULL,
+
+    CONSTRAINT "UserConnection_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ConnectionRequest" (
+    "id" UUID NOT NULL,
+    "fromId" UUID NOT NULL,
+    "toId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ConnectionRequest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PendingVerification" (
     "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
@@ -261,6 +280,12 @@ CREATE UNIQUE INDEX "StepEntry_userId_date_key" ON "StepEntry"("userId", "date")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "FinishedChallengeTask_subId_taskId_key" ON "FinishedChallengeTask"("subId", "taskId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserConnection_aId_bId_key" ON "UserConnection"("aId", "bId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConnectionRequest_fromId_toId_key" ON "ConnectionRequest"("fromId", "toId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("email");
@@ -321,3 +346,15 @@ ALTER TABLE "FinishedChallengeTask" ADD CONSTRAINT "FinishedChallengeTask_subId_
 
 -- AddForeignKey
 ALTER TABLE "FinishedChallengeTask" ADD CONSTRAINT "FinishedChallengeTask_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "ChallengeTask"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserConnection" ADD CONSTRAINT "UserConnection_aId_fkey" FOREIGN KEY ("aId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserConnection" ADD CONSTRAINT "UserConnection_bId_fkey" FOREIGN KEY ("bId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ConnectionRequest" ADD CONSTRAINT "ConnectionRequest_fromId_fkey" FOREIGN KEY ("fromId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ConnectionRequest" ADD CONSTRAINT "ConnectionRequest_toId_fkey" FOREIGN KEY ("toId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -45,8 +45,14 @@ model User {
   weight        WeightEntry[]
   challengeSubs ChallengeSubscription[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  connectionA UserConnection[] @relation("UserConnectionA")
+  connectionB UserConnection[] @relation("UserConnectionB")
+
+  connectionRequestA ConnectionRequest[] @relation("ConnectionRequestA")
+  connectionRequestB ConnectionRequest[] @relation("ConnectionRequestB")
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 }
 
 enum Gender {
@@ -308,6 +314,32 @@ model FinishedChallengeTask {
   task   ChallengeTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([subId, taskId])
+}
+
+model UserConnection {
+  id String @id @default(uuid()) @db.Uuid
+
+  aId String @db.Uuid
+  a   User   @relation("UserConnectionA", fields: [aId], references: [id], onDelete: Cascade)
+
+  bId String @db.Uuid
+  b   User   @relation("UserConnectionB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+}
+
+model ConnectionRequest {
+  id String @id @default(uuid()) @db.Uuid
+
+  fromId String @db.Uuid
+  from   User   @relation("ConnectionRequestA", fields: [fromId], references: [id], onDelete: Cascade)
+
+  toId String @db.Uuid
+  to   User   @relation("ConnectionRequestB", fields: [toId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+
+  @@unique([fromId, toId])
 }
 
 enum VerificationAction {

@@ -290,4 +290,32 @@ export class ChallengeController extends Controller {
       rank: i + 1,
     })))
   }
+
+  /** Get friends ranking */
+  @Get('/rank/friends')
+  public async getFriendsRanking(
+    @Request() req: AuthRequest,
+  ): Api<RankingData[]> {
+    const userId = req.user!.id
+    const ranking = await db.user.findMany({
+      where: {
+        profile: { isNot: null },
+        OR: [
+          { id: userId },
+          { connectionA: { some: { bId: userId } } },
+          { connectionB: { some: { aId: userId } } },
+        ],
+      },
+      include: { profile: true },
+      orderBy: { xp: 'desc' },
+    })
+
+    return ok(ranking.map((it, i) => ({
+      userId: it.id,
+      name: it.profile!.name,
+      avatarUrl: `${baseUrl}/avatars/${it.id}.jpg`,
+      xp: it.xp,
+      rank: i + 1,
+    })))
+  }
 }

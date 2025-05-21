@@ -230,6 +230,29 @@ async function up() {
         taskId: userChallenge.tasks[0].id,
       },
     })
+
+    const friendCount = await db.userConnection.aggregate({
+      _count: true,
+      where: { OR: [{ aId: user.id }, { bId: user.id }] },
+    })
+
+    if (friendCount._count < 2) {
+      const availableUsers = await db.user.findMany({
+        where: {
+          id: { not: user.id },
+          connectionA: { none: { bId: user.id } },
+          connectionB: { none: { aId: user.id } },
+        },
+      })
+
+      const newFriends = faker.helpers.uniqueArray(availableUsers, 2 - friendCount._count)
+      await Promise.all(newFriends.map((it) => {
+        const [aId, bId] = [user.id, it.id].sort()
+        return db.userConnection.create({
+          data: { aId, bId },
+        })
+      }))
+    }
   }
 
   await db.user.create({
@@ -244,16 +267,9 @@ async function up() {
 }
 
 async function down() {
-  await db.calorieEntry.deleteMany()
-  await db.calorieHeader.deleteMany()
-  await db.calorieTarget.deleteMany()
-  await db.waterEntry.deleteMany()
-  await db.waterTarget.deleteMany()
-  await db.stepEntry.deleteMany()
-  await db.stepTarget.deleteMany()
-  await db.fastingEntry.deleteMany()
-  await db.profile.deleteMany()
+  // everything connect to an user anyway
   await db.user.deleteMany()
+  await db.pendingVerification.deleteMany()
 }
 
 async function main() {
