@@ -19,6 +19,27 @@ interface FriendData {
 @Security('auth')
 @Middlewares(roleMiddleware('user'), verifiedMiddleware)
 export class ConnectionController extends Controller {
+  /** Get other people's profile. */
+  @Get('/profile/{userId}')
+  public async getOtherProfile(
+    @Path() userId: UUID,
+  ): Api<FriendData> {
+    const res = await db.user.findUnique({
+      where: { id: userId, profile: { isNot: null } },
+      include: { profile: true },
+    })
+
+    if (!res || !res.profile) {
+      return err(404, 'not-found')
+    }
+
+    return ok({
+      userId: res.id,
+      name: res.profile.name,
+      avatarUrl: `${baseUrl}/avatars/${res.id}.jpg`,
+    })
+  }
+
   /** Get all friends. */
   @Get('/all')
   public async getAllFriends(
