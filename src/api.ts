@@ -34,6 +34,8 @@ export type ApiError =
   | 'fasting-already-running'
   // auth
   | 'auth-invalid-login-method'
+  | 'auth-password-mismatch'
+  | 'auth-email-in-use'
 
 export interface ApiRes<T = {}> {
   success: boolean

@@ -51,6 +51,8 @@ model User {
   connectionRequestA ConnectionRequest[] @relation("ConnectionRequestA")
   connectionRequestB ConnectionRequest[] @relation("ConnectionRequestB")
 
+  changeEmailVerificationAction ChangeEmailVerificationAction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -354,15 +356,18 @@ model PendingVerification {
   code   String
   action VerificationAction
 
-  changeEmailAction ChangeEmailAction[]
+  changeEmailAction ChangeEmailVerificationAction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model ChangeEmailAction {
-  id String @id @default(uuid()) @db.Uuid
+model ChangeEmailVerificationAction {
+  id       String @id @default(uuid()) @db.Uuid
 
-  verification   PendingVerification @relation(fields: [verificationId], references: [id])
-  verificationId String              @map("pendingVerificationId") @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  verificationId String              @db.Uuid @unique
+  verification   PendingVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
 }
