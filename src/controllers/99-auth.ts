@@ -1,8 +1,8 @@
 import type { VerificationAction } from '@prisma/client'
 import type { Api, ApiRes } from '../api.js'
-import type { Role } from '../db.js'
 import type { AuthRequest, AuthUser } from '../middleware/auth.js'
 import crypto from 'node:crypto'
+import { Role } from '@prisma/client'
 import dedent from 'dedent'
 import { Body, Controller, Get, Post, Request, Response, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
@@ -34,6 +34,21 @@ interface LoginFirebaseData {
   idToken: string
 }
 
+interface ChangeEmailData {
+  newEmail: string
+}
+
+interface ChangeEmailVerifyCodeData {
+  newEmail: string
+  code: string
+}
+
+interface ChangePasswordData {
+  oldPassword: string
+  newPassword: string
+  confirmNewPassword: string
+}
+
 interface ResetPasswordSendCodeData {
   email: string
 }
@@ -49,17 +64,19 @@ interface ResetPasswordData {
   token: string
 }
 
+const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
+
 async function genVerificationCode(email: string, action: VerificationAction) {
   const code = `${crypto.randomInt(1000, 9999)}`
 
   const hashedCode = await bcryptHash(code)
-  await db.pendingVerification.upsert({
+  const res = await db.pendingVerification.upsert({
     where: { email },
     create: { email, action, code: hashedCode },
     update: { action, code: hashedCode },
   })
 
-  return code
+  return { res, code }
 }
 
 type VerifyResult<T> = Promise<ApiRes<T> | undefined>
@@ -93,7 +110,7 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   }
 
   if (email !== jwt.email) {
-    return err(403, 'forbidden')
+    return err(403, 'invalid-code')
   }
 
   const pending = await db.pendingVerification.findUnique({ where: { email } })
@@ -105,12 +122,9 @@ async function verifyToken<T = {}>(token: string, email: string): VerifyResult<T
   if (!validCode) {
     return err(401, 'invalid-code')
   }
-
-  await db.pendingVerification.delete({ where: { email } })
 }
 
 // TODO: Field verification
-//       Restrict creating admin user
 @Route('auth')
 @Tags('Auth')
 export class AuthController extends Controller {
@@ -126,10 +140,31 @@ export class AuthController extends Controller {
   public async signup(@Body() body: SignupData): Api<TokenData> {
     const { email, password, role } = body
 
-    // Email regex validation
-    const emailRegex = /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/
+    if (role === Role.admin) {
+      return err(403, 'forbidden')
+    }
+
     if (!emailRegex.test(email)) {
-      throw new Error('Invalid email format')
+      return err(400, 'validation-error', {
+        validationErrors: {
+          email: {
+            message: 'Invalid email format',
+            value: email,
+          },
+        },
+      })
+    }
+
+    const existing = await db.user.findUnique({ where: { email } })
+    if (existing) {
+      return err(400, 'auth-email-in-use', {
+        validationErrors: {
+          email: {
+            message: 'Email already in use',
+            value: email,
+          },
+        },
+      })
     }
 
     const user = await db.user.create({
@@ -158,10 +193,10 @@ export class AuthController extends Controller {
       return err(403, 'forbidden')
     }
 
-    const code = await genVerificationCode(email, 'signup')
+    const res = await genVerificationCode(email, 'signup')
     await sendMail(email, 'Signup', dedent`
       Use code below to finish signing up.
-      Code: ${code}
+      Code: ${res.code}
       This code is only valid for 10 minutes.
     `)
 
@@ -189,6 +224,8 @@ export class AuthController extends Controller {
       data: { isVerified: true },
     })
 
+    await db.pendingVerification.delete({ where: { email } })
+
     return ok()
   }
 
@@ -204,7 +241,7 @@ export class AuthController extends Controller {
       return err(401, 'invalid-credentials')
     }
     if (user.authType !== 'email') {
-      return err(403, 'forbidden')
+      return err(403, 'auth-invalid-login-method')
     }
 
     const validPassword = await bcryptCompare(password, user.password!)
@@ -263,6 +300,156 @@ export class AuthController extends Controller {
       where: { id: req.user!.id },
       data: {
         tokenVersion: { increment: 1 },
+        fcmToken: null,
+      },
+    })
+
+    return ok()
+  }
+
+  @Post('/change-email')
+  @Security('auth')
+  public async changeEmail(
+    @Request() req: AuthRequest,
+    @Body() body: ChangeEmailData,
+  ): Api {
+    const user = req.user!
+    const { newEmail } = body
+
+    if (user.authType !== 'email') {
+      return err(403, 'auth-invalid-login-method')
+    }
+
+    if (user.email === newEmail) {
+      return err(400, 'auth-email-in-use', {
+        validationErrors: {
+          newEmail: {
+            message: 'Email already in use',
+            value: newEmail,
+          },
+        },
+      })
+    }
+
+    if (!emailRegex.test(newEmail)) {
+      return err(400, 'validation-error', {
+        validationErrors: {
+          newEmail: {
+            message: 'Invalid email format',
+            value: newEmail,
+          },
+        },
+      })
+    }
+
+    const existing = await db.user.findUnique({ where: { email: newEmail } })
+    if (existing) {
+      return err(400, 'auth-email-in-use', {
+        validationErrors: {
+          newEmail: {
+            message: 'Email is already in use',
+            value: newEmail,
+          },
+        },
+      })
+    }
+
+    const res = await genVerificationCode(newEmail, 'changeEmail')
+    await sendMail(newEmail, 'Email Change', dedent`
+      There was a request to change email associated with your account.
+      Code: ${res.code}
+      This code is only valid for 10 minutes.
+    `)
+
+    await db.changeEmailVerificationAction.create({
+      data: {
+        verificationId: res.res.id,
+        userId: user.id,
+      },
+    })
+
+    return ok()
+  }
+
+  @Post('/change-email/verify-code')
+  @Security('auth')
+  public async changeEmailVerifyCode(
+    @Request() req: AuthRequest,
+    @Body() body: ChangeEmailVerifyCodeData,
+  ): Api {
+    const userId = req.user!.id
+    const { newEmail, code } = body
+
+    const pending = await db.pendingVerification.findUnique({ where: { email: newEmail } })
+    if (!pending) {
+      return err(404, 'not-found')
+    }
+
+    const error = await verifyCode<TokenData>(newEmail, code, 'changeEmail')
+    if (error) {
+      return error
+    }
+
+    const action = await db.changeEmailVerificationAction.findUnique({
+      where: { verificationId: pending.id },
+    })
+    if (!action) {
+      return err(404, 'not-found')
+    }
+
+    if (action.userId !== userId) {
+      return err(403, 'forbidden')
+    }
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        email: newEmail,
+        tokenVersion: { increment: 1 },
+      },
+    })
+
+    await db.pendingVerification.delete({ where: { email: newEmail } })
+
+    return ok()
+  }
+
+  /** Change the password. */
+  @Post('/change-password')
+  @Security('auth')
+  public async changePassword(
+    @Request() req: AuthRequest,
+    @Body() body: ChangePasswordData,
+  ): Api {
+    const userId = req.user!.id
+    const { oldPassword, newPassword, confirmNewPassword } = body
+
+    if (newPassword !== confirmNewPassword) {
+      return err(400, 'auth-password-mismatch')
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      return err(404, 'not-found')
+    }
+
+    if (user.authType !== 'email') {
+      return err(403, 'auth-invalid-login-method')
+    }
+
+    const validPassword = await bcryptCompare(oldPassword, user.password!)
+    if (!validPassword) {
+      return err(401, 'invalid-credentials')
+    }
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        password: await bcryptHash(newPassword),
+        tokenVersion: { increment: 1 },
       },
     })
 
@@ -281,13 +468,13 @@ export class AuthController extends Controller {
       return err(404, 'not-found')
     }
     if (user.authType !== 'email') {
-      return err(403, 'forbidden')
+      return err(403, 'auth-invalid-login-method')
     }
 
-    const code = await genVerificationCode(email, 'resetPassword')
+    const res = await genVerificationCode(email, 'resetPassword')
     await sendMail(email, 'Password Reset', dedent`
       There was a request for password reset for your account.
-      Code: ${code}
+      Code: ${res.code}
       This code is only valid for 10 minutes.
     `)
 
@@ -331,6 +518,8 @@ export class AuthController extends Controller {
         tokenVersion: { increment: 1 },
       },
     })
+
+    await db.pendingVerification.delete({ where: { email } })
 
     return ok()
   }

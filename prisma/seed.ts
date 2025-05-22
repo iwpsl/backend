@@ -1,9 +1,10 @@
+import type { ChallengeTask } from '@prisma/client'
 import process from 'node:process'
 import { faker } from '@faker-js/faker'
-import { FastingCategory, Gender, MealType } from '@prisma/client'
+import { ActivityLevel, ChallengeCategory, FastingCategory, Gender, MainGoal, MealType } from '@prisma/client'
 import { bcryptHash } from '../src/crypto.js'
 import { db } from '../src/db.js'
-import { getDateOnly } from '../src/utils.js'
+import { df, getDateOnly } from '../src/utils.js'
 
 async function up() {
   faker.seed(420)
@@ -24,6 +25,7 @@ async function up() {
         password: await bcryptHash('test'),
         isVerified: true,
         authType: 'email',
+        xp: faker.number.int({ min: 100, max: 1000, multipleOf: 10 }),
       },
     })
 
@@ -31,10 +33,13 @@ async function up() {
       data: {
         userId: user.id,
         name: faker.person.fullName(),
-        dateOfBirth: faker.date.birthdate(),
         gender: faker.helpers.enumValue(Gender),
+        mainGoal: faker.helpers.enumValue(MainGoal),
+        age: faker.number.int({ min: 17, max: 40 }),
         heightCm: faker.number.int({ min: 150, max: 180 }),
         weightKg: faker.number.int({ min: 50, max: 100 }),
+        weightTargetKg: faker.number.int({ min: 50, max: 100 }),
+        activityLevel: faker.helpers.enumValue(ActivityLevel),
       },
     })
 
@@ -104,7 +109,6 @@ async function up() {
       data: {
         userId: user.id,
         steps: faker.number.int({ min: 3000, max: 12000 }),
-        distanceKm: faker.number.float({ min: 0, max: 10, fractionDigits: 2 }),
       },
     })
 
@@ -130,23 +134,124 @@ async function up() {
       const date = new Date()
       date.setDate(date.getDate() - i)
 
-      const startTime = faker.date.between({
+      const endTime = faker.date.between({
         from: new Date(date.setHours(18, 0, 0)),
         to: new Date(date.setHours(22, 0, 0)),
       })
 
-      const durationH = faker.number.int({ min: 12, max: 24 })
-      const endTime = new Date(startTime)
-      endTime.setHours(endTime.getHours() + durationH)
+      const category = faker.helpers.enumValue(FastingCategory)
+      let durationH = 0
+      switch (category) {
+        case 'fast16eat08':
+          durationH = 16
+          break
+        case 'fast18eat06':
+          durationH = 18
+          break
+        case 'fast14eat10':
+          durationH = 14
+          break
+        case 'fast12eat12':
+          durationH = 12
+          break
+        case 'fast13eat11':
+          durationH = 13
+          break
+        case 'fast15eat09':
+          durationH = 15
+          break
+        case 'custom':
+          durationH = faker.number.int({ min: 12, max: 24 })
+          break
+      }
+
+      const startTime = df.subHours(endTime, durationH)
 
       await db.fastingEntry.create({
         data: {
-          category: faker.helpers.enumValue(FastingCategory),
+          category,
           userId: user.id,
           startTime,
           endTime,
+          finishedAt: df.addHours(startTime, 24),
         },
       })
+    }
+  }
+
+  const categories = Object.values(ChallengeCategory)
+  for (const category of categories) {
+    const challenge = await db.challenge.create({
+      data: {
+        title: faker.word.words({ count: { min: 2, max: 4 } }),
+        description: faker.lorem.paragraph(),
+        category,
+      },
+    })
+
+    const taskPromises: Promise<ChallengeTask>[] = []
+    for (let day = 0; day < 7; ++day) {
+      for (let j = 0; j < 4; ++j) {
+        taskPromises.push(db.challengeTask.create({
+          data: {
+            day,
+            challengeId: challenge.id,
+            description: faker.word.words({ count: { min: 3, max: 5 } }),
+          },
+        }))
+      }
+    }
+
+    await Promise.all(taskPromises)
+  }
+
+  const users = await db.user.findMany()
+  const challenges = await db.challenge.findMany({
+    include: {
+      tasks: {
+        orderBy: { day: 'asc' },
+      },
+    },
+  })
+
+  for (const user of users) {
+    const userChallenge = faker.helpers.arrayElement(challenges)
+    const sub = await db.challengeSubscription.create({
+      data: {
+        userId: user.id,
+        challengeId: userChallenge.id,
+        startDate: getDateOnly(new Date()),
+      },
+    })
+
+    await db.finishedChallengeTask.create({
+      data: {
+        subId: sub.id,
+        taskId: userChallenge.tasks[0].id,
+      },
+    })
+
+    const friendCount = await db.userConnection.aggregate({
+      _count: true,
+      where: { OR: [{ aId: user.id }, { bId: user.id }] },
+    })
+
+    if (friendCount._count < 2) {
+      const availableUsers = await db.user.findMany({
+        where: {
+          id: { not: user.id },
+          connectionA: { none: { bId: user.id } },
+          connectionB: { none: { aId: user.id } },
+        },
+      })
+
+      const newFriends = faker.helpers.uniqueArray(availableUsers, 2 - friendCount._count)
+      await Promise.all(newFriends.map((it) => {
+        const [aId, bId] = [user.id, it.id].sort()
+        return db.userConnection.create({
+          data: { aId, bId },
+        })
+      }))
     }
   }
 
@@ -162,16 +267,9 @@ async function up() {
 }
 
 async function down() {
-  await db.calorieEntry.deleteMany()
-  await db.calorieHeader.deleteMany()
-  await db.calorieTarget.deleteMany()
-  await db.waterEntry.deleteMany()
-  await db.waterTarget.deleteMany()
-  await db.stepEntry.deleteMany()
-  await db.stepTarget.deleteMany()
-  await db.fastingEntry.deleteMany()
-  await db.profile.deleteMany()
+  // everything connect to an user anyway
   await db.user.deleteMany()
+  await db.pendingVerification.deleteMany()
 }
 
 async function main() {

@@ -4,6 +4,7 @@ export const workerName = 'worker'
 
 export interface JobDataMapping {
   fastingFinisher: { id: UUID, finishedAt: Date }
+  challengeFinisher: { id: UUID }
   log: string
 
   // Cron

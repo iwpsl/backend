@@ -1,10 +1,10 @@
+import type { ActivityLevel, Gender, MainGoal } from '@prisma/client'
 import type { Api } from '../api.js'
-import type { Gender } from '../db.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
-import { Body, Controller, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Post, Request, Route, Security, Tags, UploadedFile } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
@@ -13,10 +13,13 @@ import { baseUrl, pathFromRoot } from '../utils.js'
 
 interface ProfileData {
   name: string
-  dateOfBirth: Date
+  mainGoal: MainGoal
+  age: number
   gender: Gender
   heightCm: number
   weightKg: number
+  weightTargetKg: number
+  activityLevel: ActivityLevel
 }
 
 interface ProfileDataResult extends ProfileData {
@@ -65,6 +68,14 @@ export class ProfileController extends Controller {
     @Request() req: AuthRequest,
     @UploadedFile() file: Express.Multer.File,
   ): Api {
+    if (!file.mimetype.startsWith('image/')) {
+      return err(400, 'invalid-file-type')
+    }
+
+    if (file.size > 5_000_000) {
+      return err(413, 'file-too-large')
+    }
+
     const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
     await fs.mkdir(path.dirname(imgPath), { recursive: true })
 
@@ -73,7 +84,15 @@ export class ProfileController extends Controller {
       .jpeg({ quality: 80 })
       .toFile(imgPath)
 
-    console.log(imgPath)
+    return ok()
+  }
+
+  @Delete('/avatar')
+  public async deleteAvatar(
+    @Request() req: AuthRequest,
+  ): Api {
+    const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
+    await fs.rm(imgPath, { force: true })
     return ok()
   }
 }

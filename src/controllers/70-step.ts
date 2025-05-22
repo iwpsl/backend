@@ -1,53 +1,61 @@
-import type { WaterEntry } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
-import { cleanUpdateAttrs, db } from '../db.js'
+import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { getDateOnly } from '../utils.js'
+import { df, getDateOnly, nullArray, reduceAvg } from '../utils.js'
 
-interface WaterJournalData {
+interface StepJournalData {
   id?: UUID
   date: Date
-  amountMl: number
+  steps: number
+  distanceKm: number
+  activeMinutes: number
 }
 
-interface WaterTargetData {
-  amountMl: number
+interface StepTargetData {
+  steps: number
 }
 
-interface WaterJournalResultData extends WaterJournalData {
+interface StepJournalResultData extends StepJournalData {
   id: UUID
 }
 
-interface DailyWaterJournalData extends WaterJournalResultData {
-  target: WaterTargetData
+interface DailyStepJournalData extends StepJournalResultData {
+  target: StepTargetData
 }
 
-function clean(res: WaterEntry) {
-  const { userId, ...rest } = cleanUpdateAttrs(res)
-  return rest
+export interface StepSumData {
+  steps: number
+  distanceKm: number
+  activeMinutes: number
 }
 
-@Route('water')
-@Tags('Water')
+interface WeeklyStepJournalData {
+  entries: (StepJournalResultData | null)[]
+  average: StepSumData
+}
+
+@Route('step')
+@Tags('Step')
 @Security('auth')
 @Middlewares(roleMiddleware('user'), verifiedMiddleware)
-export class WaterController extends Controller {
-  /** Create or update a water intake entry. */
+export class StepController extends Controller {
+  /** Create or update a journal entry. */
   @Post('/journal')
-  public async postWaterJournal(
+  public async postStepJournal(
     @Request() req: AuthRequest,
-    @Body() body: WaterJournalData,
-  ): Api {
+    @Body() body: StepJournalData,
+  ): Api<StepJournalResultData> {
     const userId = req.user!.id
     const { id, date, ...data } = body
     const dateOnly = getDateOnly(date)
 
+    let res: StepJournalResultData
     if (body.id) {
-      await db.waterEntry.update({
+      res = await db.stepEntry.update({
         where: { id, userId, deletedAt: null },
         data: {
           date: dateOnly,
@@ -55,7 +63,7 @@ export class WaterController extends Controller {
         },
       })
     } else {
-      const latestTarget = await db.waterTarget.findFirst({
+      const latestTarget = await db.stepTarget.findFirst({
         where: { userId },
         orderBy: { createdAt: 'desc' },
       })
@@ -64,7 +72,7 @@ export class WaterController extends Controller {
         throw new Error('No target')
       }
 
-      await db.waterEntry.create({
+      res = await db.stepEntry.create({
         data: {
           userId,
           targetId: latestTarget.id,
@@ -74,18 +82,18 @@ export class WaterController extends Controller {
       })
     }
 
-    return ok()
+    return ok(res)
   }
 
   /** Delete a journal entry. */
   @Delete('/journal/id/{id}')
-  public async deleteWaterJournal(
+  public async deleteStepJournal(
     @Request() req: AuthRequest,
     @Path() id: UUID,
   ): Api {
     const userId = req.user!.id
 
-    await db.waterEntry.update({
+    await db.stepEntry.update({
       where: { id, userId, deletedAt: null },
       data: { deletedAt: new Date() },
     })
@@ -93,38 +101,41 @@ export class WaterController extends Controller {
     return ok()
   }
 
-  /** Get a list of water intake entries. */
+  /** Get a list of journal entries. */
   @Get('/journal')
-  public async getWaterJournals(
+  public async getStepJournals(
     @Request() req: AuthRequest,
     @Query() after?: UUID,
-  ): Api<WaterJournalResultData[]> {
+  ): Api<StepJournalResultData[]> {
     const userId = req.user!.id
 
     const res = after
-      ? await db.waterEntry.findMany({
+      ? await db.stepEntry.findMany({
         take: 10,
         skip: 1,
         cursor: { id: after },
         where: { userId },
         orderBy: { createdAt: 'asc' },
       })
-      : await db.waterEntry.findMany({
+      : await db.stepEntry.findMany({
         take: 10,
         where: { userId },
         orderBy: { createdAt: 'asc' },
       })
 
-    return ok(res.map(clean))
+    return ok(res.map((it) => {
+      const { userId, ...rest } = it
+      return rest
+    }))
   }
 
-  /** Get detail of a water intake entry. */
-  @Get('/journal/id/{id}')
-  public async getWaterJournalById(
+  /** Get detail of a journal entry. */
+  @Get('/journal/{id}')
+  public async getStepJournalById(
     @Request() req: AuthRequest,
     @Path() id: UUID,
-  ): Api<WaterJournalResultData> {
-    const res = await db.waterEntry.findUnique({
+  ): Api<StepJournalResultData> {
+    const res = await db.stepEntry.findUnique({
       where: {
         id,
         userId: req.user!.id,
@@ -135,19 +146,19 @@ export class WaterController extends Controller {
       return err(404, 'not-found')
     }
 
-    return ok(clean(res))
+    return ok(res)
   }
 
   /** Get entry by date. */
   @Get('/journal/date/{date}')
-  public async getWaterJournalByDate(
+  public async getStepJournalByDate(
     @Request() req: AuthRequest,
     @Path() date: Date,
-  ): Api<DailyWaterJournalData> {
+  ): Api<DailyStepJournalData> {
     const userId = req.user!.id
     const dateOnly = getDateOnly(date)
 
-    const res = await db.waterEntry.findUnique({
+    const res = await db.stepEntry.findUnique({
       where: {
         userId_date: {
           userId,
@@ -165,22 +176,65 @@ export class WaterController extends Controller {
 
     return ok({
       id: res.id,
-      amountMl: res.amountMl,
+      steps: res.steps,
       date: res.date,
+      activeMinutes: res.activeMinutes,
+      distanceKm: res.distanceKm,
       target: {
-        amountMl: res.target.amountMl,
+        steps: res.target.steps,
       },
+    })
+  }
+
+  /** Get weekly data. */
+  @Get('/journal/weekly/{startDate}')
+  public async getWeeklyStepJournal(
+    @Request() req: AuthRequest,
+    @Path() startDate: Date,
+  ): Api<WeeklyStepJournalData> {
+    const userId = req.user!.id
+    const startDateOnly = getDateOnly(startDate)
+    const endDateOnly = df.addDays(startDate, 7)
+
+    const res = await db.stepEntry.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startDateOnly,
+          lt: endDateOnly,
+        },
+      },
+      include: {
+        target: true,
+      },
+    })
+
+    const entries = nullArray<StepJournalResultData>(7)
+    for (const item of res) {
+      const index = df.differenceInDays(item.date, startDateOnly)
+      if (index >= 0 && index < 7) {
+        entries[index] = item
+      }
+    }
+
+    return ok({
+      average: {
+        steps: reduceAvg(res, it => it.steps),
+        distanceKm: reduceAvg(res, it => it.distanceKm),
+        activeMinutes: reduceAvg(res, it => it.activeMinutes),
+      },
+      entries,
     })
   }
 
   /** Get latest target. */
   @Get('/target/latest')
-  public async getLatestWaterTarget(
+  public async getLatestStepTarget(
     @Request() req: AuthRequest,
-  ): Api<WaterTargetData> {
+  ): Api<StepTargetData> {
     const userId = req.user!.id
 
-    const res = await db.waterTarget.findFirst({
+    const res = await db.stepTarget.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     })
@@ -194,20 +248,20 @@ export class WaterController extends Controller {
 
   /** Insert a new target. */
   @Post('/target')
-  public async createWaterTarget(
+  public async createStepTarget(
     @Request() req: AuthRequest,
-    @Body() body: WaterTargetData,
+    @Body() body: StepTargetData,
   ): Api {
     const userId = req.user!.id
 
-    const target = await db.waterTarget.create({
+    const target = await db.stepTarget.create({
       data: {
         userId,
         ...body,
       },
     })
 
-    const todayEntry = await db.waterEntry.findUnique({
+    const todayEntry = await db.stepEntry.findUnique({
       where: {
         userId_date: {
           userId,
@@ -217,7 +271,7 @@ export class WaterController extends Controller {
     })
 
     if (todayEntry) {
-      await db.waterEntry.update({
+      await db.stepEntry.update({
         where: { id: todayEntry.id },
         data: { targetId: target.id },
       })

@@ -30,6 +30,8 @@ model User {
   role         Role     @default(user)
   isVerified   Boolean  @default(false)
   tokenVersion Int      @default(0)
+  fcmToken     String?  @unique
+  xp           Int      @default(0)
 
   profile       Profile?
   calorie       CalorieHeader[]
@@ -40,6 +42,16 @@ model User {
   step          StepEntry[]
   stepTarget    StepTarget[]
   fasting       FastingEntry[]
+  weight        WeightEntry[]
+  challengeSubs ChallengeSubscription[]
+
+  connectionA UserConnection[] @relation("UserConnectionA")
+  connectionB UserConnection[] @relation("UserConnectionB")
+
+  connectionRequestA ConnectionRequest[] @relation("ConnectionRequestA")
+  connectionRequestB ConnectionRequest[] @relation("ConnectionRequestB")
+
+  changeEmailVerificationAction ChangeEmailVerificationAction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -50,13 +62,29 @@ enum Gender {
   female
 }
 
+enum MainGoal {
+  weightLoss
+  stayFit
+  buildMuscle
+}
+
+enum ActivityLevel {
+  low
+  medium
+  high
+  veryHigh
+}
+
 model Profile {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  dateOfBirth DateTime
-  gender      Gender
-  heightCm    Int
-  weightKg    Int
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  gender         Gender
+  mainGoal       MainGoal
+  age            Int
+  heightCm       Int
+  weightKg       Int
+  weightTargetKg Int
+  activityLevel  ActivityLevel
 
   userId String @unique @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -162,9 +190,8 @@ model WaterEntry {
 }
 
 model StepTarget {
-  id         String @id @default(uuid()) @db.Uuid
-  steps      Int
-  distanceKm Float
+  id    String @id @default(uuid()) @db.Uuid
+  steps Int
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -221,9 +248,106 @@ model FastingEntry {
   deletedAt DateTime?
 }
 
+model WeightEntry {
+  id       String   @id @default(uuid()) @db.Uuid
+  date     DateTime
+  weightKg Int
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+enum ChallengeCategory {
+  workout
+  food
+  fast
+}
+
+model Challenge {
+  id          String            @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  category    ChallengeCategory
+
+  tasks ChallengeTask[]
+  subs  ChallengeSubscription[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model ChallengeTask {
+  id          String @id @default(uuid()) @db.Uuid
+  description String
+  day         Int
+
+  challengeId String    @db.Uuid
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  finished FinishedChallengeTask[]
+}
+
+model ChallengeSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  startDate DateTime
+  finished  Boolean  @default(false)
+
+  challengeId String    @db.Uuid
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  finishedTasks FinishedChallengeTask[]
+}
+
+model FinishedChallengeTask {
+  id String @id @default(uuid()) @db.Uuid
+
+  subId String                @db.Uuid
+  sub   ChallengeSubscription @relation(fields: [subId], references: [id], onDelete: Cascade)
+
+  taskId String        @db.Uuid
+  task   ChallengeTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([subId, taskId])
+}
+
+model UserConnection {
+  id String @id @default(uuid()) @db.Uuid
+
+  aId String @db.Uuid
+  a   User   @relation("UserConnectionA", fields: [aId], references: [id], onDelete: Cascade)
+
+  bId String @db.Uuid
+  b   User   @relation("UserConnectionB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+}
+
+model ConnectionRequest {
+  id String @id @default(uuid()) @db.Uuid
+
+  fromId String @db.Uuid
+  from   User   @relation("ConnectionRequestA", fields: [fromId], references: [id], onDelete: Cascade)
+
+  toId String @db.Uuid
+  to   User   @relation("ConnectionRequestB", fields: [toId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromId, toId])
+}
+
 enum VerificationAction {
   signup
   resetPassword
+  changeEmail
 }
 
 model PendingVerification {
@@ -232,10 +356,13 @@ model PendingVerification {
   code   String
   action VerificationAction
 
+  changeEmailAction ChangeEmailVerificationAction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+<<<<<<< HEAD
 model UserHistoryView {
   entry_id   Int
   user_id    String   @db.Uuid
@@ -250,3 +377,14 @@ model UserHistoryView {
 }
 
 
+=======
+model ChangeEmailVerificationAction {
+  id       String @id @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  verificationId String              @db.Uuid @unique
+  verification   PendingVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+}
+>>>>>>> origin/master
