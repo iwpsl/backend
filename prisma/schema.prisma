@@ -51,8 +51,10 @@ model User {
   connectionRequestA ConnectionRequest[] @relation("ConnectionRequestA")
   connectionRequestB ConnectionRequest[] @relation("ConnectionRequestB")
 
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  changeEmailVerificationAction ChangeEmailVerificationAction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Gender {
@@ -337,7 +339,7 @@ model ConnectionRequest {
   toId String @db.Uuid
   to   User   @relation("ConnectionRequestB", fields: [toId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([fromId, toId])
 }
@@ -345,6 +347,7 @@ model ConnectionRequest {
 enum VerificationAction {
   signup
   resetPassword
+  changeEmail
 }
 
 model PendingVerification {
@@ -353,6 +356,18 @@ model PendingVerification {
   code   String
   action VerificationAction
 
+  changeEmailAction ChangeEmailVerificationAction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ChangeEmailVerificationAction {
+  id       String @id @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  verificationId String              @db.Uuid @unique
+  verification   PendingVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
 }

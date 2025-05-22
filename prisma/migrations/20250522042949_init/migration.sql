@@ -23,7 +23,7 @@ CREATE TYPE "FastingCategory" AS ENUM ('fast16eat08', 'fast18eat06', 'fast14eat1
 CREATE TYPE "ChallengeCategory" AS ENUM ('workout', 'food', 'fast');
 
 -- CreateEnum
-CREATE TYPE "VerificationAction" AS ENUM ('signup', 'resetPassword');
+CREATE TYPE "VerificationAction" AS ENUM ('signup', 'resetPassword', 'changeEmail');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -263,6 +263,15 @@ CREATE TABLE "PendingVerification" (
     CONSTRAINT "PendingVerification_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "ChangeEmailVerificationAction" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "verificationId" UUID NOT NULL,
+
+    CONSTRAINT "ChangeEmailVerificationAction_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -292,6 +301,9 @@ CREATE UNIQUE INDEX "ConnectionRequest_fromId_toId_key" ON "ConnectionRequest"("
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PendingVerification_email_key" ON "PendingVerification"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ChangeEmailVerificationAction_verificationId_key" ON "ChangeEmailVerificationAction"("verificationId");
 
 -- AddForeignKey
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -361,3 +373,9 @@ ALTER TABLE "ConnectionRequest" ADD CONSTRAINT "ConnectionRequest_fromId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "ConnectionRequest" ADD CONSTRAINT "ConnectionRequest_toId_fkey" FOREIGN KEY ("toId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChangeEmailVerificationAction" ADD CONSTRAINT "ChangeEmailVerificationAction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChangeEmailVerificationAction" ADD CONSTRAINT "ChangeEmailVerificationAction_verificationId_fkey" FOREIGN KEY ("verificationId") REFERENCES "PendingVerification"("id") ON DELETE CASCADE ON UPDATE CASCADE;
