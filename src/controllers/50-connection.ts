@@ -110,7 +110,7 @@ export class ConnectionController extends Controller {
   public async sendFriendRequest(
     @Request() req: AuthRequest,
     @Path() targetUserId: UUID,
-  ): Api {
+  ): Api<FriendData> {
     const userId = req.user!.id
     if (userId === targetUserId) {
       return err(403, 'forbidden')
@@ -155,7 +155,11 @@ export class ConnectionController extends Controller {
       })
     }
 
-    return ok()
+    return ok({
+      userId: targetUser.id,
+      name: targetUser.profile!.name,
+      avatarUrl: `${baseUrl}/avatars/${targetUser.id}.jpg`,
+    })
   }
 
   /** Accept (or deny) a friend request. */
@@ -164,11 +168,12 @@ export class ConnectionController extends Controller {
     @Request() req: AuthRequest,
     @Path() fromUserId: UUID,
     @Query() accept: boolean,
-  ): Api {
+  ): Api<FriendData> {
     const userId = req.user!.id
 
     const res = await db.connectionRequest.findUnique({
       where: { fromId_toId: { fromId: fromUserId, toId: userId } },
+      include: { from: { include: { profile: true } } },
     })
 
     if (!res) {
@@ -195,7 +200,11 @@ export class ConnectionController extends Controller {
       })
     })
 
-    return ok()
+    return ok({
+      userId: res.from.id,
+      name: res.from.profile!.name,
+      avatarUrl: `${baseUrl}/avatars/${res.from.id}.jpg`,
+    })
   }
 
   /** Remove a friend. */
@@ -203,7 +212,7 @@ export class ConnectionController extends Controller {
   public async unfriend(
     @Request() req: AuthRequest,
     @Path() friendUserId: UUID,
-  ): Api {
+  ): Api<FriendData> {
     const userId = req.user!.id
     const [aId, bId] = [userId, friendUserId].sort()
 
@@ -211,10 +220,18 @@ export class ConnectionController extends Controller {
       await db.userConnection.delete({
         where: { aId_bId: { aId, bId } },
       })
+
+      const profile = await db.profile.findUnique({
+        where: { userId: friendUserId },
+      })
+
+      return ok({
+        userId: profile!.userId,
+        name: profile!.name,
+        avatarUrl: `${baseUrl}/avatars/${profile!.userId}.jpg`,
+      })
     } catch {
       return err(404, 'not-found')
     }
-
-    return ok()
   }
 }
