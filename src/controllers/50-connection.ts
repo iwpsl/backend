@@ -3,7 +3,7 @@ import type { AuthRequest } from '../middleware/auth.js'
 import { Controller, Get, Middlewares, Path, Post, Query, Request, Route, Security, Tags } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
-import { fcm } from '../firebase/firebase.js'
+import { sendNotification } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { baseUrl } from '../utils.js'
@@ -167,12 +167,9 @@ export class ConnectionController extends Controller {
     })
 
     if (targetUser.fcmToken) {
-      await fcm.send({
-        token: targetUser.fcmToken,
-        notification: {
-          title: 'Friend Request',
-          body: `${targetUser.profile!.name} requested you to be your friend!`,
-        },
+      await sendNotification(targetUser.fcmToken, 'system', {
+        title: 'Friend Request',
+        body: `${targetUser.profile!.name} requested you to be your friend!`,
       })
     }
 

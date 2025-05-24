@@ -1,5 +1,6 @@
 import type { ActivityLevel, FastingCategory, Gender, MainGoal } from '@prisma/client'
 import type { Api } from '../api.js'
+import type { NotificationType } from '../firebase/firebase.js'
 import type { CalorieData, CalorieDataWithPercentage } from './70-calorie.js'
 import type { FastingCommonCategory } from './70-fasting.js'
 import type { StepSumData } from './70-step.js'
@@ -7,7 +8,7 @@ import type { WaterData } from './70-water.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
 import { db } from '../db.js'
-import { fcm } from '../firebase/firebase.js'
+import { sendNotification } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { df, getDateOnly, reduceAvg } from '../utils.js'
 import { avgCalorie, sumCalorie } from './70-calorie.js'
@@ -27,6 +28,7 @@ type AdminProfileData = Array<{
 interface NotificationData {
   token: string
   title: string
+  type: NotificationType
   body: string | null
   imageUrl: string | null
 }
@@ -93,14 +95,12 @@ export class AdminController extends Controller {
   /** Send a notification to a specified device token. */
   @Post('/notification')
   public async sendNotification(@Body() body: NotificationData): Api {
-    await fcm.send({
-      token: body.token,
-      notification: {
-        title: body.title,
-        body: body.body ?? undefined,
-        imageUrl: body.imageUrl ?? undefined,
-      },
+    await sendNotification(body.token, body.type, {
+      title: body.title,
+      body: body.body ?? undefined,
+      imageUrl: body.imageUrl ?? undefined,
     })
+
     return ok()
   }
 
