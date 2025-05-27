@@ -185,7 +185,7 @@ export class ChallengeController extends Controller {
   }
 
   /** Leave a challenge. */
-  @Post('/task/leave/{challengeId}')
+  @Post('/leave/{challengeId}')
   public async leaveChallenge(
     @Request() req: AuthRequest,
     @Path() challengeId: UUID,
