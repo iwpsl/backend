@@ -282,7 +282,7 @@ export class ChallengeController extends Controller {
       await tx.user.update({
         where: { id: userId },
         data: {
-          xp: { decrement: 10 },
+          xp: { decrement: 5 },
         },
       })
     })
@@ -353,7 +353,7 @@ export class ChallengeController extends Controller {
       await tx.user.update({
         where: { id: userId },
         data: {
-          xp: { increment: 10 },
+          xp: { increment: 5 },
         },
       })
     })
