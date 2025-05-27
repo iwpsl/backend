@@ -199,6 +199,11 @@ export class ChallengeController extends Controller {
           where: { userId, finishedAt: null },
           orderBy: { startDate: 'desc' },
           take: 1,
+          include: {
+            _count: {
+              select: { finishedTasks: true },
+            },
+          },
         },
       },
     })
@@ -211,9 +216,18 @@ export class ChallengeController extends Controller {
       return err(403, 'challenge-not-joined')
     }
 
-    await db.challengeSubscription.update({
-      where: { id: challenge.subs[0].id },
-      data: { finishedAt: getDateOnly(new Date()) },
+    await db.$transaction(async (tx) => {
+      await tx.challengeSubscription.update({
+        where: { id: challenge.subs[0].id },
+        data: { finishedAt: getDateOnly(new Date()) },
+      })
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          xp: { decrement: challenge.subs[0]._count.finishedTasks * 5 },
+        },
+      })
     })
 
     return ok()
