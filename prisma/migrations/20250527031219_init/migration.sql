@@ -216,9 +216,11 @@ CREATE TABLE "ChallengeTask" (
 CREATE TABLE "ChallengeSubscription" (
     "id" UUID NOT NULL,
     "startDate" TIMESTAMP(3) NOT NULL,
-    "finished" BOOLEAN NOT NULL DEFAULT false,
+    "finishedAt" TIMESTAMP(3),
     "challengeId" UUID NOT NULL,
     "userId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "ChallengeSubscription_pkey" PRIMARY KEY ("id")
 );

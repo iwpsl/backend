@@ -293,15 +293,18 @@ model ChallengeTask {
 }
 
 model ChallengeSubscription {
-  id        String   @id @default(uuid()) @db.Uuid
-  startDate DateTime
-  finished  Boolean  @default(false)
+  id         String    @id @default(uuid()) @db.Uuid
+  startDate  DateTime
+  finishedAt DateTime?
 
   challengeId String    @db.Uuid
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   finishedTasks FinishedChallengeTask[]
 }
@@ -363,11 +366,11 @@ model PendingVerification {
 }
 
 model ChangeEmailVerificationAction {
-  id       String @id @default(uuid()) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  verificationId String              @db.Uuid @unique
+  verificationId String              @unique @db.Uuid
   verification   PendingVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
 }

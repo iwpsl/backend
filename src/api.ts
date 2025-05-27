@@ -26,6 +26,7 @@ export type ApiError =
   | 'challenge-not-joined'
   | 'task-wrong-day'
   | 'task-already-finished'
+  | 'task-not-finished'
   // connection
   | 'connection-already-requested'
   | 'connection-they-requested'

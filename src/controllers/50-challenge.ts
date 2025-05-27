@@ -15,7 +15,7 @@ interface ChallengeData {
   description: string
   category: ChallengeCategory
   taskCount: number
-  joined: boolean
+  startDate: Date | null
   progress: number
 }
 
@@ -58,7 +58,7 @@ export class ChallengeController extends Controller {
       include: {
         _count: { select: { tasks: true } },
         subs: {
-          where: { userId, finished: false },
+          where: { userId, finishedAt: null },
           include: {
             _count: { select: { finishedTasks: true } },
           },
@@ -72,7 +72,7 @@ export class ChallengeController extends Controller {
       description: it.description,
       category: it.category,
       taskCount: it._count.tasks,
-      joined: it.subs.at(0) !== undefined,
+      startDate: it.subs.at(0)?.startDate ?? null,
       progress: it.subs.at(0)?._count?.finishedTasks ?? 0,
     })),
     )
@@ -92,14 +92,14 @@ export class ChallengeController extends Controller {
         deletedAt: null,
       },
       include: {
-        _count: {
-          select: { subs: { where: { userId, finished: false } } },
+        subs: {
+          where: { userId, finishedAt: null },
         },
         tasks: {
           include: {
             _count: {
               select: {
-                finished: { where: { sub: { userId, finished: false } } },
+                finished: { where: { sub: { userId, finishedAt: null } } },
               },
             },
           },
@@ -122,7 +122,7 @@ export class ChallengeController extends Controller {
       description: res.description,
       category: res.category,
       taskCount: res.tasks.length,
-      joined: res._count.subs > 0,
+      startDate: res.subs.at(0)?.startDate ?? null,
       progress,
       tasks: res.tasks.map(it => ({
         id: it.id,
@@ -148,7 +148,7 @@ export class ChallengeController extends Controller {
       },
       include: {
         _count: {
-          select: { subs: { where: { userId, finished: false } } },
+          select: { subs: { where: { userId, finishedAt: null } } },
         },
       },
     })
@@ -184,6 +184,112 @@ export class ChallengeController extends Controller {
     return ok()
   }
 
+  /** Leave a challenge. */
+  @Post('/task/leave/{challengeId}')
+  public async leaveChallenge(
+    @Request() req: AuthRequest,
+    @Path() challengeId: UUID,
+  ): Api {
+    const userId = req.user!.id
+
+    const challenge = await db.challenge.findUnique({
+      where: { id: challengeId, deletedAt: null },
+      include: {
+        subs: {
+          where: { userId, finishedAt: null },
+          orderBy: { startDate: 'desc' },
+          take: 1,
+        },
+      },
+    })
+
+    if (!challenge) {
+      return err(404, 'not-found')
+    }
+
+    if (challenge.subs.length === 0) {
+      return err(403, 'challenge-not-joined')
+    }
+
+    await db.challengeSubscription.update({
+      where: { id: challenge.subs[0].id },
+      data: { finishedAt: getDateOnly(new Date()) },
+    })
+
+    return ok()
+  }
+
+  /** Unfinish a challenge task */
+  @Post('/task/unfinish/{taskId}')
+  public async unfinishTask(
+    @Request() req: AuthRequest,
+    @Path() taskId: UUID,
+  ): Api {
+    const userId = req.user!.id
+
+    const task = await db.challengeTask.findUnique({
+      where: {
+        id: taskId,
+      },
+      include: {
+        _count: { select: {
+          finished: {
+            where: {
+              sub: { userId, finishedAt: null },
+            },
+          },
+        } },
+        challenge: {
+          include: {
+            _count: { select: { tasks: true } },
+            subs: {
+              where: { userId, finishedAt: null },
+              include: {
+                _count: { select: { finishedTasks: true } },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!task) {
+      return err(404, 'not-found')
+    }
+
+    const sub = task.challenge.subs.at(0)
+    if (!sub) {
+      return err(403, 'challenge-not-joined')
+    }
+
+    if (task._count.finished === 0) {
+      return err(403, 'task-not-finished')
+    }
+
+    const dayDiff = df.differenceInDays(getDateOnly(new Date()), sub.startDate)
+    if (dayDiff !== task.day) {
+      return err(403, 'task-wrong-day')
+    }
+
+    await db.$transaction(async (tx) => {
+      await tx.finishedChallengeTask.delete({
+        where: { subId_taskId: {
+          subId: sub.id,
+          taskId,
+        } },
+      })
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          xp: { decrement: 10 },
+        },
+      })
+    })
+
+    return ok()
+  }
+
   /** Finish a challenge task */
   @Post('/task/finish/{taskId}')
   public async finishTask(
@@ -200,7 +306,7 @@ export class ChallengeController extends Controller {
         _count: { select: {
           finished: {
             where: {
-              sub: { userId, finished: false },
+              sub: { userId, finishedAt: null },
             },
           },
         } },
@@ -208,7 +314,7 @@ export class ChallengeController extends Controller {
           include: {
             _count: { select: { tasks: true } },
             subs: {
-              where: { userId, finished: false },
+              where: { userId, finishedAt: null },
               include: {
                 _count: { select: { finishedTasks: true } },
               },
@@ -250,14 +356,6 @@ export class ChallengeController extends Controller {
           xp: { increment: 10 },
         },
       })
-
-      // also finish the sub if it is the last task
-      if (sub._count.finishedTasks === (task.challenge._count.tasks - 1)) {
-        await tx.challengeSubscription.update({
-          where: { id: sub.id },
-          data: { finished: true },
-        })
-      }
     })
 
     return ok()
