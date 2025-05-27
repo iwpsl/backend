@@ -210,7 +210,6 @@ export class CalorieController extends Controller {
   @Get('/product/search')
   public async searchProduct(@Query() q: string): Api<SearchData> {
     const url = getSearchUrl(q)
-    console.log(url)
 
     const res = await fetch(url)
     const data = await res.json() as OffSearchData

@@ -379,8 +379,6 @@ export class ChallengeController extends Controller {
       WHERE id = ${userId}::uuid;
     ` as { xp: number, rank: bigint }[]
 
-    console.log(res)
-
     return ok({
       xp: res.at(0)?.xp ?? 0,
       rank: Number(res.at(0)?.rank) ?? 0,
