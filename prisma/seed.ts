@@ -255,15 +255,17 @@ async function up() {
     }
   }
 
-  await db.user.create({
-    data: {
-      email: 'admin@example.com',
-      password: await bcryptHash('admin'),
-      role: 'admin',
-      authType: 'email',
-      isVerified: true,
-    },
-  })
+  for (let i = 0; i < 5; ++i) {
+    await db.user.create({
+      data: {
+        email: `admin${i}@example.com`,
+        password: await bcryptHash('admin'),
+        role: 'admin',
+        authType: 'email',
+        isVerified: true,
+      },
+    })
+  }
 }
 
 async function down() {
