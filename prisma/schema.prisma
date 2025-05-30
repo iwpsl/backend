@@ -85,6 +85,7 @@ model Profile {
   weightKg       Int
   weightTargetKg Int
   activityLevel  ActivityLevel
+  avatarId       String?       @db.Uuid
 
   userId String @unique @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -303,8 +304,8 @@ model ChallengeSubscription {
   userId String @db.Uuid
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   finishedTasks FinishedChallengeTask[]
 }

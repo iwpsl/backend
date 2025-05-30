@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { baseUrl, df, getDateOnly, reduceSum } from '../utils.js'
+import { df, getDateOnly, reduceSum } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
 
 interface ChallengeData {
@@ -412,7 +412,7 @@ export class ChallengeController extends Controller {
     return ok(ranking.map((it, i) => ({
       userId: it.id,
       name: it.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${it.id}.jpg`,
+      avatarUrl: it.profile!.avatarUrl ?? '',
       xp: it.xp,
       rank: i + 1,
     })))
@@ -440,7 +440,7 @@ export class ChallengeController extends Controller {
     return ok(ranking.map((it, i) => ({
       userId: it.id,
       name: it.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${it.id}.jpg`,
+      avatarUrl: it.profile!.avatarUrl ?? '',
       xp: it.xp,
       rank: i + 1,
     })))

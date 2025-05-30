@@ -6,7 +6,7 @@ import { db } from '../db.js'
 import { sendNotification } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { baseUrl } from '../utils.js'
+import { getAvatarUrl } from './90-profile.js'
 
 interface FriendData {
   userId: UUID
@@ -36,7 +36,7 @@ export class ConnectionController extends Controller {
     return ok({
       userId: res.id,
       name: res.profile.name,
-      avatarUrl: `${baseUrl}/avatars/${res.id}.jpg`,
+      avatarUrl: getAvatarUrl(res.profile),
     })
   }
 
@@ -63,7 +63,7 @@ export class ConnectionController extends Controller {
       return {
         userId: friend.id,
         name: friend.profile!.name,
-        avatarUrl: `${baseUrl}/avatars/${friend.id}.jpg`,
+        avatarUrl: getAvatarUrl(friend.profile!),
       }
     }))
   }
@@ -93,7 +93,7 @@ export class ConnectionController extends Controller {
     return ok(res.map(it => ({
       userId: it.from.id,
       name: it.from.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${it.from.id}.jpg`,
+      avatarUrl: getAvatarUrl(it.from.profile!),
     })))
   }
 
@@ -122,7 +122,7 @@ export class ConnectionController extends Controller {
     return ok(res.map(it => ({
       userId: it.to.id,
       name: it.to.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${it.to.id}.jpg`,
+      avatarUrl: getAvatarUrl(it.to.profile!),
     })))
   }
 
@@ -176,7 +176,7 @@ export class ConnectionController extends Controller {
     return ok({
       userId: targetUser.id,
       name: targetUser.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${targetUser.id}.jpg`,
+      avatarUrl: getAvatarUrl(targetUser.profile!),
     })
   }
 
@@ -221,7 +221,7 @@ export class ConnectionController extends Controller {
     return ok({
       userId: res.from.id,
       name: res.from.profile!.name,
-      avatarUrl: `${baseUrl}/avatars/${res.from.id}.jpg`,
+      avatarUrl: getAvatarUrl(res.from.profile!),
     })
   }
 
@@ -246,7 +246,7 @@ export class ConnectionController extends Controller {
       return ok({
         userId: profile!.userId,
         name: profile!.name,
-        avatarUrl: `${baseUrl}/avatars/${profile!.userId}.jpg`,
+        avatarUrl: getAvatarUrl(profile!),
       })
     } catch {
       return err(404, 'not-found')

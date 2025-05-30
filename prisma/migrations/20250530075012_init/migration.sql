@@ -53,6 +53,7 @@ CREATE TABLE "Profile" (
     "weightKg" INTEGER NOT NULL,
     "weightTargetKg" INTEGER NOT NULL,
     "activityLevel" "ActivityLevel" NOT NULL,
+    "avatarId" UUID,
     "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

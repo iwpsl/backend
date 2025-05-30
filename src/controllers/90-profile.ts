@@ -1,6 +1,7 @@
-import type { ActivityLevel, Gender, MainGoal } from '@prisma/client'
+import type { ActivityLevel, Gender, MainGoal, Profile } from '@prisma/client'
 import type { Api } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
@@ -27,6 +28,10 @@ interface ProfileDataResult extends ProfileData {
   avatarUrl: string
 }
 
+export function getAvatarUrl({ avatarId }: Pick<Profile, 'avatarId'>) {
+  return `${baseUrl}/avatars/${avatarId}.jpg`
+}
+
 @Route('profile')
 @Tags('Profile')
 @Security('auth')
@@ -40,10 +45,10 @@ export class ProfileController extends Controller {
       return err(404, 'not-found')
     }
 
-    const { id, updatedAt, createdAt, ...rest } = profile
+    const { id, avatarId, updatedAt, createdAt, ...rest } = profile
     return ok({
-      avatarUrl: `${baseUrl}/avatars/${profile.userId}.jpg`,
       ...rest,
+      avatarUrl: getAvatarUrl(profile),
     })
   }
 
@@ -76,13 +81,32 @@ export class ProfileController extends Controller {
       return err(413, 'file-too-large')
     }
 
-    const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
-    await fs.mkdir(path.dirname(imgPath), { recursive: true })
+    const profile = await db.profile.findUnique({
+      where: { userId: req.user!.id },
+    })
+
+    if (!profile) {
+      return err(404, 'not-found')
+    }
+
+    if (profile.avatarId) {
+      const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
+      await fs.rm(fsPath, { force: true })
+    }
+
+    const avatarId = randomUUID()
+    const fsPath = pathFromRoot(`public/avatars/${avatarId}.jpg`)
+    await fs.mkdir(path.dirname(fsPath), { recursive: true })
 
     await sharp(file.buffer)
       .resize(300, 300)
       .jpeg({ quality: 80 })
-      .toFile(imgPath)
+      .toFile(fsPath)
+
+    await db.profile.update({
+      where: { userId: req.user!.id },
+      data: { avatarId },
+    })
 
     return ok()
   }
@@ -91,8 +115,16 @@ export class ProfileController extends Controller {
   public async deleteAvatar(
     @Request() req: AuthRequest,
   ): Api {
-    const imgPath = pathFromRoot(`public/avatars/${req.user!.id}.jpg`)
-    await fs.rm(imgPath, { force: true })
+    const profile = await db.profile.findUnique({
+      where: { userId: req.user!.id },
+    })
+
+    if (!profile || !profile.avatarId) {
+      return err(404, 'not-found')
+    }
+
+    const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
+    await fs.rm(fsPath, { force: true })
     return ok()
   }
 }
