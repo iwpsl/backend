@@ -62,13 +62,15 @@
       prisma studio --browser none
     '';
 
-    express-prod.exec = ''
-      pnpm build
-      pnpm start
-    '';
+    express-prod = {
+      exec = ''
+        pnpm start
+      '';
+
+      process-compose.availability.restart = "always";
+    };
 
     worker-prod.exec = ''
-      pnpm build
       pnpm start:worker
     '';
 
