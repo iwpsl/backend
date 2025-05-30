@@ -8,6 +8,7 @@ import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { df, getDateOnly, reduceSum } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
+import { getAvatarUrl } from './90-profile.js'
 
 interface ChallengeData {
   id: UUID
@@ -412,7 +413,7 @@ export class ChallengeController extends Controller {
     return ok(ranking.map((it, i) => ({
       userId: it.id,
       name: it.profile!.name,
-      avatarUrl: it.profile!.avatarUrl ?? '',
+      avatarUrl: getAvatarUrl(it.profile!),
       xp: it.xp,
       rank: i + 1,
     })))
@@ -440,7 +441,7 @@ export class ChallengeController extends Controller {
     return ok(ranking.map((it, i) => ({
       userId: it.id,
       name: it.profile!.name,
-      avatarUrl: it.profile!.avatarUrl ?? '',
+      avatarUrl: getAvatarUrl(it.profile!),
       xp: it.xp,
       rank: i + 1,
     })))
