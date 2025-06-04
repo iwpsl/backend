@@ -1,10 +1,11 @@
 import type { ActivityLevel, FastingCategory, Gender, MainGoal } from '@prisma/client'
-import type { Api } from '../api.js'
+import type { Api, UUID } from '../api.js'
 import type { NotificationType } from '../firebase/firebase.js'
 import type { CalorieData, CalorieDataWithPercentage } from './70-calorie.js'
 import type { FastingCommonCategory } from './70-fasting.js'
 import type { StepSumData } from './70-step.js'
 import type { WaterData } from './70-water.js'
+import type { ProfileData } from './90-profile.js'
 import { Body, Controller, Get, Middlewares, Path, Post, Route, Security, Tags } from 'tsoa'
 import { ok } from '../api.js'
 import { db } from '../db.js'
@@ -13,7 +14,8 @@ import { roleMiddleware } from '../middleware/role.js'
 import { df, getDateOnly, reduceAvg } from '../utils.js'
 import { avgCalorie, sumCalorie } from './70-calorie.js'
 
-type AdminProfileData = Array<{
+interface AdminProfileData {
+  userId: UUID
   email: string
   name: string
   mainGoal: MainGoal
@@ -23,7 +25,7 @@ type AdminProfileData = Array<{
   weightKg: number
   weightTargetKg: number
   activityLevel: ActivityLevel
-}>
+}
 
 interface NotificationData {
   token: string
@@ -66,7 +68,7 @@ async function getDailyAvg(dateOnly: Date) {
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profiles')
-  public async getProfiles(): Api<AdminProfileData> {
+  public async getProfiles(): Api<AdminProfileData[]> {
     const r = await db.user.findMany({
       where: {
         role: { not: 'admin' },
@@ -74,22 +76,47 @@ export class AdminController extends Controller {
       },
       select: {
         email: true,
-        profile: {
-          select: {
-            name: true,
-            mainGoal: true,
-            age: true,
-            gender: true,
-            heightCm: true,
-            weightKg: true,
-            weightTargetKg: true,
-            activityLevel: true,
-          },
-        },
+        profile: true,
       },
     })
 
-    return ok(r.map(({ profile, ...user }) => ({ ...user, ...profile! })))
+    return ok(r.map(({ profile, ...user }) => ({
+      ...user,
+      ...profile!,
+    })))
+  }
+
+  /** Update an user profile. */
+  @Get('/profile/{userId}')
+  public async updateProfile(
+    @Path() userId: UUID,
+    @Body() body: ProfileData,
+  ): Api<AdminProfileData> {
+    await db.profile.update({
+      where: { userId },
+      data: body,
+    })
+
+    const res = await db.user.findUnique({
+      where: {
+        id: userId,
+        profile: { isNot: null },
+      },
+      select: {
+        email: true,
+        profile: true,
+      },
+    })
+
+    if (!res) {
+      return ok()
+    }
+
+    const { profile, ...user } = res
+    return ok({
+      ...user,
+      ...profile!,
+    })
   }
 
   /** Send a notification to a specified device token. */

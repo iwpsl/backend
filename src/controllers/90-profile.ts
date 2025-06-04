@@ -12,7 +12,7 @@ import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { baseUrl, pathFromRoot } from '../utils.js'
 
-interface ProfileData {
+export interface ProfileData {
   name: string
   mainGoal: MainGoal
   age: number
