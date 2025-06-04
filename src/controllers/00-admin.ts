@@ -1,30 +1,26 @@
-import type { ActivityLevel, FastingCategory, Gender, MainGoal } from '@prisma/client'
+import type { FastingCategory } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
 import type { NotificationType } from '../firebase/firebase.js'
 import type { CalorieData, CalorieDataWithPercentage } from './70-calorie.js'
 import type { FastingCommonCategory } from './70-fasting.js'
 import type { StepSumData } from './70-step.js'
 import type { WaterData } from './70-water.js'
-import type { ProfileData } from './90-profile.js'
-import { Body, Controller, Get, Middlewares, Path, Post, Route, Security, Tags } from 'tsoa'
-import { ok } from '../api.js'
+import type { ProfileData, ProfileDataResult } from './90-profile.js'
+import { Body, Controller, Delete, Get, Middlewares, Path, Post, Route, Security, Tags, UploadedFile } from 'tsoa'
+import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { sendNotification } from '../firebase/firebase.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { df, getDateOnly, reduceAvg } from '../utils.js'
 import { avgCalorie, sumCalorie } from './70-calorie.js'
+import { deleteAvatar, getAvatarUrl, uploadAvatar } from './90-profile.js'
 
-interface AdminProfileData {
-  userId: UUID
+interface AvatarData {
+  avatarUrl: string
+}
+
+interface AdminProfileData extends ProfileDataResult {
   email: string
-  name: string
-  mainGoal: MainGoal
-  age: number
-  gender: Gender
-  heightCm: number
-  weightKg: number
-  weightTargetKg: number
-  activityLevel: ActivityLevel
 }
 
 interface NotificationData {
@@ -67,7 +63,7 @@ async function getDailyAvg(dateOnly: Date) {
 @Middlewares(roleMiddleware('admin'))
 export class AdminController extends Controller {
   /** Get list of profiles. */
-  @Get('/profiles')
+  @Get('/profile/all')
   public async getProfiles(): Api<AdminProfileData[]> {
     const r = await db.user.findMany({
       where: {
@@ -83,40 +79,59 @@ export class AdminController extends Controller {
     return ok(r.map(({ profile, ...user }) => ({
       ...user,
       ...profile!,
+      avatarUrl: getAvatarUrl(profile!),
     })))
   }
 
-  /** Update an user profile. */
-  @Get('/profile/{userId}')
+  /** Update a profile data. */
+  @Post('/profile/{userId}')
   public async updateProfile(
     @Path() userId: UUID,
     @Body() body: ProfileData,
   ): Api<AdminProfileData> {
-    await db.profile.update({
+    const res = await db.profile.update({
       where: { userId },
       data: body,
-    })
-
-    const res = await db.user.findUnique({
-      where: {
-        id: userId,
-        profile: { isNot: null },
-      },
-      select: {
-        email: true,
-        profile: true,
+      include: {
+        user: { select: { email: true } },
       },
     })
 
-    if (!res) {
-      return ok()
+    return ok({
+      email: res.user.email,
+      ...res,
+      avatarUrl: getAvatarUrl(res),
+    })
+  }
+
+  /** Change a user avatar. */
+  @Post('/avatar/{userId}')
+  public async uploadAvatar(
+    @Path() userId: UUID,
+    @UploadedFile() file: Express.Multer.File,
+  ): Api<AvatarData> {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      return err(404, 'not-found')
     }
 
-    const { profile, ...user } = res
-    return ok({
-      ...user,
-      ...profile!,
-    })
+    const [res, profile] = await uploadAvatar<AvatarData>(userId, file)
+    if (!res.success) {
+      return res
+    }
+
+    return ok({ avatarUrl: getAvatarUrl(profile!) })
+  }
+
+  /** Delete a user avatar */
+  @Delete('/avatar/{userId}')
+  public async deleteAvatar(
+    @Path() userId: UUID,
+  ): Api {
+    return await deleteAvatar(userId)
   }
 
   /** Send a notification to a specified device token. */
