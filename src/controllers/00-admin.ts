@@ -23,6 +23,10 @@ interface AdminProfileData extends ProfileDataResult {
   email: string
 }
 
+interface NotificationProfileData extends AdminProfileData {
+  fcmToken: string
+}
+
 type SortOrder = 'asc' | 'desc'
 
 type AdminProfileSortBy =
@@ -40,7 +44,7 @@ interface UserOverviewData {
 }
 
 interface NotificationData {
-  token: string
+  tokens: string[]
   title: string
   type: NotificationType
   body: string | null
@@ -80,7 +84,7 @@ async function getDailyAvg(dateOnly: Date) {
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profile/all')
-  public async getProfiles(
+  public async adminGetProfiles(
     @Query() page: number = 1,
     @Query() limit: number = 20,
     @Query() sortOrder: SortOrder = 'asc',
@@ -130,7 +134,7 @@ export class AdminController extends Controller {
 
   /** Update a profile data. */
   @Post('/profile/{userId}')
-  public async updateProfile(
+  public async adminUpdateProfile(
     @Path() userId: UUID,
     @Body() body: ProfileData,
   ): Api<AdminProfileData> {
@@ -151,7 +155,7 @@ export class AdminController extends Controller {
 
   /** Change a user avatar. */
   @Post('/avatar/{userId}')
-  public async uploadAvatar(
+  public async adminUpdateProfileAvatar(
     @Path() userId: UUID,
     @UploadedFile() file: Express.Multer.File,
   ): Api<AvatarData> {
@@ -173,16 +177,52 @@ export class AdminController extends Controller {
 
   /** Delete a user avatar */
   @Delete('/avatar/{userId}')
-  public async deleteAvatar(
+  public async adminDeleteProfileAvatar(
     @Path() userId: UUID,
   ): Api {
     return await deleteAvatar(userId)
   }
 
+  /** Search for users that can receive notifications */
+  @Get('/notification/targets')
+  public async adminGetNotificationTargets(
+    @Query() q: string,
+  ): Api<NotificationProfileData[]> {
+    if (q.length < 3) {
+      return err(400, 'validation-error')
+    }
+
+    const users = await db.user.findMany({
+      where: {
+        role: { not: 'admin' },
+        fcmToken: { not: null },
+        profile: { isNot: null },
+        OR: [
+          { email: { contains: q, mode: 'insensitive' } },
+          { profile: { name: { contains: q, mode: 'insensitive' } } },
+        ],
+      },
+      select: {
+        email: true,
+        profile: true,
+        fcmToken: true,
+      },
+      take: 10,
+      orderBy: { profile: { name: 'asc' } },
+    })
+
+    return ok(users.map(({ profile, ...user }) => ({
+      ...user,
+      ...profile!,
+      avatarUrl: getAvatarUrl(profile!),
+      fcmToken: user.fcmToken!,
+    })))
+  }
+
   /** Send a notification to a specified device token. */
   @Post('/notification')
-  public async sendNotification(@Body() body: NotificationData): Api {
-    await sendNotification(body.token, body.type, {
+  public async adminSendNotification(@Body() body: NotificationData): Api {
+    await sendNotification(body.tokens, body.type, {
       title: body.title,
       body: body.body ?? undefined,
       imageUrl: body.imageUrl ?? undefined,
@@ -192,7 +232,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/calorie/daily/{date}')
-  public async getGlobalDailyCalorieRecap(
+  public async adminGetGlobalDailyCalorieRecap(
     @Path() date: Date,
   ): Api<CalorieRecapData> {
     const dateOnly = getDateOnly(date)
@@ -202,7 +242,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/calorie/weekly/{startDate}')
-  public async getGlobalWeeklyCalorieRecap(
+  public async adminGetGlobalWeeklyCalorieRecap(
     @Path() startDate: Date,
   ): Api<CalorieRecapData> {
     const startDateOnly = getDateOnly(startDate)
@@ -214,7 +254,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/fasting/daily/{date}')
-  public async getGlobalDailyFastingRecap(
+  public async adminGetGlobalDailyFastingRecap(
     @Path() date: Date,
   ): Api<FastingCommonCategory> {
     const dateOnly = getDateOnly(date)
@@ -247,7 +287,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/fasting/weekly/{startDate}')
-  public async getGlobalWeeklyFastingRecap(
+  public async adminGetGlobalWeeklyFastingRecap(
     @Path() startDate: Date,
   ): Api<FastingCommonCategory> {
     const startDateOnly = getDateOnly(startDate)
@@ -284,7 +324,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/step/daily/{date}')
-  public async getGlobalDailyStepRecap(
+  public async adminGetGlobalDailyStepRecap(
     @Path() date: Date,
   ): Api<StepRecapData> {
     const dateOnly = getDateOnly(date)
@@ -304,7 +344,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/step/weekly/{startDate}')
-  public async getGlobalWeeklyStepRecap(
+  public async adminGetGlobalWeeklyStepRecap(
     @Path() startDate: Date,
   ): Api<StepRecapData> {
     const startDateOnly = getDateOnly(startDate)
@@ -329,7 +369,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/water/daily/{date}')
-  public async getGlobalDailyWaterRecap(
+  public async adminGetGlobalDailyWaterRecap(
     @Path() date: Date,
   ): Api<WaterRecapData> {
     const dateOnly = getDateOnly(date)
@@ -347,7 +387,7 @@ export class AdminController extends Controller {
   }
 
   @Get('/recap/water/weekly/{startDate}')
-  public async getGlobalWeeklyWaterRecap(
+  public async adminGetGlobalWeeklyWaterRecap(
     @Path() startDate: Date,
   ): Api<WaterRecapData> {
     const startDateOnly = getDateOnly(startDate)
