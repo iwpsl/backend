@@ -1,4 +1,4 @@
-import type { FastingCategory } from '@prisma/client'
+import type { FastingCategory, Prisma } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
 import type { NotificationType } from '../firebase/firebase.js'
 import type { CalorieData, CalorieDataWithPercentage } from './70-calorie.js'
@@ -6,7 +6,7 @@ import type { FastingCommonCategory } from './70-fasting.js'
 import type { StepSumData } from './70-step.js'
 import type { WaterData } from './70-water.js'
 import type { ProfileData, ProfileDataResult } from './90-profile.js'
-import { Body, Controller, Delete, Get, Middlewares, Path, Post, Route, Security, Tags, UploadedFile } from 'tsoa'
+import { Body, Controller, Delete, Get, Middlewares, Path, Post, Query, Route, Security, Tags, UploadedFile } from 'tsoa'
 import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { sendNotification } from '../firebase/firebase.js'
@@ -21,6 +21,22 @@ interface AvatarData {
 
 interface AdminProfileData extends ProfileDataResult {
   email: string
+}
+
+type SortOrder = 'asc' | 'desc'
+
+type AdminProfileSortBy =
+  | 'email'
+  | 'name'
+  | 'age'
+  | 'heightCm'
+  | 'weightKg'
+
+interface UserOverviewData {
+  totalUser: number
+  pageIndex: number
+  pageTotal: number
+  entries: AdminProfileData[]
 }
 
 interface NotificationData {
@@ -64,23 +80,52 @@ async function getDailyAvg(dateOnly: Date) {
 export class AdminController extends Controller {
   /** Get list of profiles. */
   @Get('/profile/all')
-  public async getProfiles(): Api<AdminProfileData[]> {
-    const r = await db.user.findMany({
-      where: {
-        role: { not: 'admin' },
-        profile: { isNot: null },
-      },
-      select: {
-        email: true,
-        profile: true,
-      },
-    })
+  public async getProfiles(
+    @Query() page: number = 1,
+    @Query() limit: number = 20,
+    @Query() sortOrder: SortOrder = 'asc',
+    @Query() sortBy: AdminProfileSortBy = 'name',
+    @Query() filter?: string,
+  ): Api<UserOverviewData> {
+    const where: Prisma.UserFindManyArgs['where'] = {
+      role: { not: 'admin' },
+      profile: { isNot: null },
+    }
 
-    return ok(r.map(({ profile, ...user }) => ({
-      ...user,
-      ...profile!,
-      avatarUrl: getAvatarUrl(profile!),
-    })))
+    const [totalUser, users] = await Promise.all([
+      db.user.count({ where }),
+      db.user.findMany({
+        where: {
+          ...where,
+          ...(filter && {
+            OR: [
+              { email: { contains: filter, mode: 'insensitive' } },
+              { profile: { name: { contains: filter, mode: 'insensitive' } } },
+            ],
+          }),
+        },
+        select: {
+          email: true,
+          profile: true,
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: sortBy === 'email'
+          ? { email: sortOrder }
+          : { profile: { [sortBy]: sortOrder } },
+      }),
+    ])
+
+    return ok({
+      totalUser,
+      pageIndex: page,
+      pageTotal: Math.ceil(totalUser / limit),
+      entries: users.map(({ profile, ...user }) => ({
+        ...user,
+        ...profile!,
+        avatarUrl: getAvatarUrl(profile!),
+      })),
+    })
   }
 
   /** Update a profile data. */
