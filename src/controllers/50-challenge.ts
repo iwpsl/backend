@@ -6,7 +6,7 @@ import { err, ok } from '../api.js'
 import { db } from '../db.js'
 import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
-import { df, getDateOnly, reduceSum } from '../utils.js'
+import { df, reduceSum } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
 import { getAvatarUrl } from './90-profile.js'
 
@@ -176,7 +176,7 @@ export class ChallengeController extends Controller {
       return err(403, 'challenge-already-joined')
     }
 
-    const startDate = getDateOnly(new Date())
+    const startDate = new Date()
     const sub = await db.challengeSubscription.create({
       data: {
         userId,
@@ -234,7 +234,7 @@ export class ChallengeController extends Controller {
     await db.$transaction(async (tx) => {
       await tx.challengeSubscription.update({
         where: { id: challenge.subs[0].id },
-        data: { finishedAt: getDateOnly(new Date()) },
+        data: { finishedAt: new Date() },
       })
 
       await tx.user.update({
@@ -295,7 +295,7 @@ export class ChallengeController extends Controller {
       return err(403, 'task-not-finished')
     }
 
-    const dayDiff = df.differenceInDays(getDateOnly(new Date()), sub.startDate)
+    const dayDiff = df.differenceInDays(new Date(), sub.startDate)
     if (dayDiff !== task.day) {
       return err(403, 'task-wrong-day')
     }
@@ -366,7 +366,7 @@ export class ChallengeController extends Controller {
       return err(403, 'task-already-finished')
     }
 
-    const dayDiff = df.differenceInDays(getDateOnly(new Date()), sub.startDate)
+    const dayDiff = df.differenceInDays(new Date(), sub.startDate)
     if (dayDiff !== task.day) {
       return err(403, 'task-wrong-day')
     }
