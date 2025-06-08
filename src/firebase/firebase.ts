@@ -1,4 +1,4 @@
-import type { Notification } from 'firebase-admin/messaging'
+import type { BaseMessage, Notification } from 'firebase-admin/messaging'
 import admin from 'firebase-admin'
 import serviceAccount from './serviceAccountKey.json' with { type: 'json' }
 
@@ -18,15 +18,31 @@ export type NotificationType =
   | 'system'
 
 export async function sendNotification(
-  token: string,
+  tokens: string[],
   type: NotificationType,
   notification: Notification,
 ) {
-  await fcm.send({
-    token,
+  const message: BaseMessage = {
     notification,
     data: {
       type,
     },
-  })
+  }
+
+  if (tokens.length === 0) {
+    await fcm.send({
+      topic: 'global',
+      ...message,
+    })
+  } else if (tokens.length === 1) {
+    await fcm.send({
+      token: tokens[0],
+      ...message,
+    })
+  } else {
+    await fcm.sendEachForMulticast({
+      tokens,
+      ...message,
+    })
+  }
 }

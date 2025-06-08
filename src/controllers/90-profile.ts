@@ -1,5 +1,5 @@
 import type { ActivityLevel, Gender, MainGoal, Profile } from '@prisma/client'
-import type { Api } from '../api.js'
+import type { Api, ApiRes } from '../api.js'
 import type { AuthRequest } from '../middleware/auth.js'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
@@ -12,7 +12,7 @@ import { roleMiddleware } from '../middleware/role.js'
 import { verifiedMiddleware } from '../middleware/verified.js'
 import { baseUrl, pathFromRoot } from '../utils.js'
 
-interface ProfileData {
+export interface ProfileData {
   name: string
   mainGoal: MainGoal
   age: number
@@ -23,13 +23,69 @@ interface ProfileData {
   activityLevel: ActivityLevel
 }
 
-interface ProfileDataResult extends ProfileData {
+export interface ProfileDataResult extends ProfileData {
   userId: string
   avatarUrl: string
 }
 
 export function getAvatarUrl({ avatarId }: Pick<Profile, 'avatarId'>) {
   return `${baseUrl}/avatars/${avatarId}.jpg`
+}
+
+export async function uploadAvatar<T = {}>(
+  userId: string,
+  file: Express.Multer.File,
+): Promise<[ApiRes<T>, Profile?]> {
+  if (!file.mimetype.startsWith('image/')) {
+    return [err(400, 'invalid-file-type'), undefined]
+  }
+
+  if (file.size > 5_000_000) {
+    return [err(413, 'file-too-large'), undefined]
+  }
+
+  const profile = await db.profile.findUnique({
+    where: { userId },
+  })
+
+  if (!profile) {
+    return [err(404, 'not-found'), undefined]
+  }
+
+  if (profile.avatarId) {
+    const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
+    await fs.rm(fsPath, { force: true })
+  }
+
+  const avatarId = randomUUID()
+  const fsPath = pathFromRoot(`public/avatars/${avatarId}.jpg`)
+  await fs.mkdir(path.dirname(fsPath), { recursive: true })
+
+  await sharp(file.buffer)
+    .resize(300, 300)
+    .jpeg({ quality: 80 })
+    .toFile(fsPath)
+
+  const res = await db.profile.update({
+    where: { userId },
+    data: { avatarId },
+  })
+
+  return [ok(), res]
+}
+
+export async function deleteAvatar(userId: string): Api {
+  const profile = await db.profile.findUnique({
+    where: { userId },
+  })
+
+  if (!profile || !profile.avatarId) {
+    return err(404, 'not-found')
+  }
+
+  const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
+  await fs.rm(fsPath, { force: true })
+  return ok()
 }
 
 @Route('profile')
@@ -73,58 +129,14 @@ export class ProfileController extends Controller {
     @Request() req: AuthRequest,
     @UploadedFile() file: Express.Multer.File,
   ): Api {
-    if (!file.mimetype.startsWith('image/')) {
-      return err(400, 'invalid-file-type')
-    }
-
-    if (file.size > 5_000_000) {
-      return err(413, 'file-too-large')
-    }
-
-    const profile = await db.profile.findUnique({
-      where: { userId: req.user!.id },
-    })
-
-    if (!profile) {
-      return err(404, 'not-found')
-    }
-
-    if (profile.avatarId) {
-      const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
-      await fs.rm(fsPath, { force: true })
-    }
-
-    const avatarId = randomUUID()
-    const fsPath = pathFromRoot(`public/avatars/${avatarId}.jpg`)
-    await fs.mkdir(path.dirname(fsPath), { recursive: true })
-
-    await sharp(file.buffer)
-      .resize(300, 300)
-      .jpeg({ quality: 80 })
-      .toFile(fsPath)
-
-    await db.profile.update({
-      where: { userId: req.user!.id },
-      data: { avatarId },
-    })
-
-    return ok()
+    const [res, _] = await uploadAvatar(req.user!.id, file)
+    return res
   }
 
   @Delete('/avatar')
   public async deleteAvatar(
     @Request() req: AuthRequest,
   ): Api {
-    const profile = await db.profile.findUnique({
-      where: { userId: req.user!.id },
-    })
-
-    if (!profile || !profile.avatarId) {
-      return err(404, 'not-found')
-    }
-
-    const fsPath = pathFromRoot(`public/avatars/${profile.avatarId}.jpg`)
-    await fs.rm(fsPath, { force: true })
-    return ok()
+    return await deleteAvatar(req.user!.id)
   }
 }

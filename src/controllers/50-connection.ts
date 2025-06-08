@@ -167,7 +167,7 @@ export class ConnectionController extends Controller {
     })
 
     if (targetUser.fcmToken) {
-      await sendNotification(targetUser.fcmToken, 'system', {
+      await sendNotification([targetUser.fcmToken], 'system', {
         title: 'Friend Request',
         body: `${targetUser.profile!.name} requested you to be your friend!`,
       })

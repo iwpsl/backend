@@ -2,7 +2,7 @@ import type { JobDataMapping, JobId, JobInstance } from './job.js'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import { db } from '../db.js'
-import { df, getDateOnly } from '../utils.js'
+import { df } from '../utils.js'
 import { workerName } from './job.js'
 
 type JobHandlers = {
@@ -20,7 +20,7 @@ const jobHandlers: JobHandlers = {
   async challengeFinisher({ id }) {
     await db.challengeSubscription.updateMany({
       where: { id, finishedAt: null },
-      data: { finishedAt: getDateOnly(new Date()) },
+      data: { finishedAt: new Date() },
     })
   },
 

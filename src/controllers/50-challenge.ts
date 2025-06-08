@@ -10,25 +10,39 @@ import { df, getDateOnly, reduceSum } from '../utils.js'
 import { enqueueWork } from '../worker/queue.js'
 import { getAvatarUrl } from './90-profile.js'
 
-interface ChallengeData {
-  id: UUID
+const XP_PER_TASK = 5
+
+export interface ChallengeData {
   title: string
   description: string
   category: ChallengeCategory
+}
+
+export interface ChallengeResultData extends ChallengeData {
+  id: UUID
   taskCount: number
+}
+
+interface UserChallengeData extends ChallengeResultData {
   startDate: Date | null
   progress: number
 }
 
-interface ChallengeTask {
-  id: UUID
+export interface ChallengeTaskData {
   description: string
   day: number
+}
+
+export interface ChallengeTaskResultData extends ChallengeTaskData {
+  id: UUID
+}
+
+export interface UserChallengeTaskData extends ChallengeTaskResultData {
   finished: boolean
 }
 
-interface ChallengeDetailsData extends ChallengeData {
-  tasks: ChallengeTask[]
+interface UserChallengeDetailsData extends UserChallengeData {
+  tasks: UserChallengeTaskData[]
 }
 
 interface XpData {
@@ -51,7 +65,7 @@ export class ChallengeController extends Controller {
   @Get('/all')
   public async getChallenges(
     @Request() req: AuthRequest,
-  ): Api<ChallengeData[]> {
+  ): Api<UserChallengeData[]> {
     const userId = req.user!.id
 
     const res = await db.challenge.findMany({
@@ -84,7 +98,7 @@ export class ChallengeController extends Controller {
   public async getChallengeDetails(
     @Request() req: AuthRequest,
     @Path() challengeId: UUID,
-  ): Api<ChallengeDetailsData> {
+  ): Api<UserChallengeDetailsData> {
     const userId = req.user!.id
 
     const res = await db.challenge.findUnique({
@@ -226,7 +240,7 @@ export class ChallengeController extends Controller {
       await tx.user.update({
         where: { id: userId },
         data: {
-          xp: { decrement: challenge.subs[0]._count.finishedTasks * 5 },
+          xp: { decrement: challenge.subs[0]._count.finishedTasks * XP_PER_TASK },
         },
       })
     })
@@ -368,7 +382,7 @@ export class ChallengeController extends Controller {
       await tx.user.update({
         where: { id: userId },
         data: {
-          xp: { increment: 5 },
+          xp: { increment: XP_PER_TASK },
         },
       })
     })
