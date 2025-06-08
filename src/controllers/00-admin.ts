@@ -1,6 +1,7 @@
 import type { FastingCategory, Prisma } from '@prisma/client'
 import type { Api, UUID } from '../api.js'
 import type { NotificationType } from '../firebase/firebase.js'
+import type { ChallengeData, ChallengeResultData, ChallengeTaskData, ChallengeTaskResultData } from './50-challenge.js'
 import type { CalorieData, CalorieDataWithPercentage } from './70-calorie.js'
 import type { FastingCommonCategory } from './70-fasting.js'
 import type { StepSumData } from './70-step.js'
@@ -61,6 +62,18 @@ interface StepRecapData {
 
 interface WaterRecapData {
   average: WaterData
+}
+
+interface AdminChallengeData extends ChallengeResultData {
+  subscriberCount: number
+}
+
+interface AdminChallengeDetailsData extends AdminChallengeData {
+  tasks: ChallengeTaskResultData[]
+}
+
+interface AdminChallengeInputData extends ChallengeData {
+  tasks: ChallengeTaskData[]
 }
 
 async function getDailyAvg(dateOnly: Date) {
@@ -406,6 +419,119 @@ export class AdminController extends Controller {
       average: {
         amountMl: reduceAvg(res, it => it.amountMl),
       },
+    })
+  }
+
+  /** Get all challenges */
+  @Get('/challenge/all')
+  public async adminGetChallenges(): Api<AdminChallengeData[]> {
+    const res = await db.challenge.findMany({
+      where: { deletedAt: null },
+      include: {
+        _count: { select: {
+          tasks: true,
+          subs: {
+            where: { finishedAt: null },
+          },
+        } },
+      },
+    })
+
+    return ok(res.map(it => ({
+      id: it.id,
+      title: it.title,
+      description: it.description,
+      category: it.category,
+      taskCount: it._count.tasks,
+      subscriberCount: it._count.subs,
+    })))
+  }
+
+  /** Get challenge details */
+  @Get('/challenge/details/{challengeId}')
+  public async adminGetChallengeDetails(
+    @Path() challengeId: UUID,
+  ): Api<AdminChallengeDetailsData> {
+    const res = await db.challenge.findUnique({
+      where: {
+        id: challengeId,
+        deletedAt: null,
+      },
+      include: {
+        _count: { select: {
+          subs: {
+            where: { finishedAt: null },
+          },
+        } },
+        tasks: {
+          orderBy: {
+            day: 'asc',
+          },
+        },
+      },
+    })
+
+    if (!res) {
+      return err(404, 'not-found')
+    }
+
+    return ok({
+      id: res.id,
+      title: res.title,
+      description: res.description,
+      category: res.category,
+      subscriberCount: res._count.subs,
+      taskCount: res.tasks.length,
+      tasks: res.tasks.map(it => ({
+        id: it.id,
+        day: it.day,
+        description: it.description,
+      })),
+    })
+  }
+
+  /** Create new challenge. */
+  @Post('/challenge')
+  public async adminCreateNewChallenge(
+    @Body() body: AdminChallengeInputData,
+  ): Api<AdminChallengeDetailsData> {
+    return await db.$transaction(async (tx) => {
+      const challenge = await tx.challenge.create({
+        data: {
+          category: body.category,
+          title: body.title,
+          description: body.description,
+        },
+      })
+
+      await tx.challengeTask.createMany({
+        data: body.tasks.map(it => ({
+          challengeId: challenge.id,
+          ...it,
+        })),
+      })
+
+      return this.adminGetChallengeDetails(challenge.id)
+    })
+  }
+
+  /** Delete a challenge */
+  @Delete('/challenge/delete/{challengeId}')
+  public async adminDeleteChallenge(
+    @Path() challengeId: UUID,
+  ): Api {
+    return await db.$transaction(async (tx) => {
+      await tx.challenge.update({
+        where: { id: challengeId, deletedAt: null },
+        data: { deletedAt: new Date() },
+      })
+
+      await tx.challengeSubscription.updateMany({
+        where: { challengeId },
+        data: { finishedAt: new Date() },
+      })
+
+      return ok()
     })
   }
 }
