@@ -272,6 +272,7 @@ async function down() {
   // everything connect to an user anyway
   await db.user.deleteMany()
   await db.pendingVerification.deleteMany()
+  await db.challenge.deleteMany()
 }
 
 async function main() {
